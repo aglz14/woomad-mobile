@@ -1,17 +1,19 @@
 import { Stack } from 'expo-router';
 import { useAuth } from '@/hooks/useAuth';
-import { Redirect } from 'expo-router';
+import { router } from 'expo-router';
+import { useEffect } from 'react';
 
 export default function AdminLayout() {
   const { isAdmin, isLoading } = useAuth();
 
+  useEffect(() => {
+    if (!isLoading && !isAdmin) {
+      router.replace('/(tabs)');
+    }
+  }, [isLoading, isAdmin]);
+
   if (isLoading) {
     return null;
-  }
-
-  // Redirect non-admin users away from admin routes
-  if (!isAdmin) {
-    return <Redirect href="/(tabs)" />;
   }
 
   return (

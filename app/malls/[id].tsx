@@ -1,8 +1,9 @@
-import { View, Text, StyleSheet, ScrollView, Image, Pressable, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image, Pressable, ActivityIndicator, useWindowDimensions } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { supabase } from '@/lib/supabase';
-import { useEffect, useState } from 'react';
-import { Store, MapPin, Filter, ArrowLeft } from 'lucide-react-native';
+import { useEffect, useState, useMemo } from 'react';
+import { Store, MapPin, Filter, ArrowLeft, Phone, Navigation2, Clock, Info } from 'lucide-react-native';
+import * as Linking from 'expo-linking';
 
 type Store = {
   id: string;
@@ -13,6 +14,7 @@ type Store = {
   location_in_mall: string;
   contact_number: string;
   category: string;
+  hours: string;
 };
 
 type Mall = {
@@ -21,28 +23,31 @@ type Mall = {
   address: string;
   description: string;
   image: string;
+  latitude: number;
+  longitude: number;
 };
 
-export default function ShoppingProfileScreen() {
+export default function MallDetailsScreen() {
   const { id } = useLocalSearchParams();
+  const { width } = useWindowDimensions();
   const [mall, setMall] = useState<Mall | null>(null);
   const [stores, setStores] = useState<Store[]>([]);
   const [filteredStores, setFilteredStores] = useState<Store[]>([]);
-  const [categories, setCategories] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const categories = useMemo(() => {
+    if (!stores.length) return [];
+    return Array.from(new Set(stores.map(store => store.category))).sort();
+  }, [stores]);
 
   useEffect(() => {
     fetchMallData();
   }, [id]);
 
   useEffect(() => {
-    if (stores.length > 0) {
-      const uniqueCategories = Array.from(new Set(stores.map(store => store.category)));
-      setCategories(uniqueCategories);
-      filterStores(selectedCategory);
-    }
+    filterStores(selectedCategory);
   }, [stores, selectedCategory]);
 
   async function fetchMallData() {
@@ -50,7 +55,6 @@ export default function ShoppingProfileScreen() {
       setLoading(true);
       setError(null);
 
-      // Fetch mall details
       const { data: mallData, error: mallError } = await supabase
         .from('shopping_malls')
         .select('*')
@@ -60,7 +64,6 @@ export default function ShoppingProfileScreen() {
       if (mallError) throw mallError;
       setMall(mallData);
 
-      // Fetch stores
       const { data: storesData, error: storesError } = await supabase
         .from('stores')
         .select('*')
@@ -88,6 +91,12 @@ export default function ShoppingProfileScreen() {
     setSelectedCategory(category);
   }
 
+  const openMaps = () => {
+    if (!mall) return;
+    const url = `https://www.google.com/maps/search/?api=1&query=${mall.latitude},${mall.longitude}`;
+    Linking.openURL(url);
+  };
+
   if (loading) {
     return (
       <View style={styles.centered}>
@@ -100,46 +109,61 @@ export default function ShoppingProfileScreen() {
     return (
       <View style={styles.centered}>
         <Text style={styles.error}>{error || 'Mall not found'}</Text>
+        <Pressable style={styles.retryButton} onPress={fetchMallData}>
+          <Text style={styles.retryText}>Retry</Text>
+        </Pressable>
       </View>
     );
   }
 
   return (
-    <ScrollView style={styles.container}>
-      <Pressable 
-        style={styles.backButton} 
-        onPress={() => router.back()}>
-        <ArrowLeft size={24} color="#ffffff" />
-      </Pressable>
+    <ScrollView style={styles.container} stickyHeaderIndices={[1]}>
+      <View>
+        <Image
+          source={{
+            uri: mall.image || 'https://images.unsplash.com/photo-1519567241348-f1f95aeea6e6?w=800',
+          }}
+          style={[styles.headerImage, { width }]}
+        />
+        <Pressable 
+          style={styles.backButton} 
+          onPress={() => router.back()}>
+          <ArrowLeft size={24} color="#ffffff" />
+        </Pressable>
+      </View>
 
-      <Image
-        source={{
-          uri: mall.image || 'https://images.unsplash.com/photo-1581235720704-06d3acfcb36f?w=800&fit=crop&q=80',
-        }}
-        style={styles.headerImage}
-      />
-
-      <View style={styles.content}>
+      <View style={styles.headerContainer}>
         <View style={styles.header}>
           <Text style={styles.title}>{mall.name}</Text>
-          <View style={styles.addressContainer}>
+          <Pressable style={styles.addressButton} onPress={openMaps}>
             <MapPin size={16} color="#666666" />
             <Text style={styles.address}>{mall.address}</Text>
-          </View>
-          {mall.description && (
-            <Text style={styles.description}>{mall.description}</Text>
-          )}
+            <Navigation2 size={16} color="#FF4B4B" />
+          </Pressable>
         </View>
+      </View>
 
-        <View style={styles.categoriesSection}>
+      <View style={styles.content}>
+        {mall.description && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Info size={20} color="#1a1a1a" />
+              <Text style={styles.sectionTitle}>About</Text>
+            </View>
+            <Text style={styles.description}>{mall.description}</Text>
+          </View>
+        )}
+
+        <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Filter size={20} color="#1a1a1a" />
-            <Text style={styles.sectionTitle}>Filter by Category</Text>
+            <Text style={styles.sectionTitle}>Categories</Text>
           </View>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            style={styles.categoriesScroll}>
+            style={styles.categoriesScroll}
+            contentContainerStyle={styles.categoriesContent}>
             <Pressable
               style={[
                 styles.categoryChip,
@@ -151,7 +175,7 @@ export default function ShoppingProfileScreen() {
                   styles.categoryText,
                   !selectedCategory && styles.categoryTextSelected,
                 ]}>
-                All
+                All ({stores.length})
               </Text>
             </Pressable>
             {categories.map((category) => (
@@ -167,37 +191,62 @@ export default function ShoppingProfileScreen() {
                     styles.categoryText,
                     selectedCategory === category && styles.categoryTextSelected,
                   ]}>
-                  {category}
+                  {category} ({stores.filter(s => s.category === category).length})
                 </Text>
               </Pressable>
             ))}
           </ScrollView>
         </View>
 
-        <View style={styles.storesSection}>
+        <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Store size={20} color="#1a1a1a" />
-            <Text style={styles.sectionTitle}>Stores</Text>
+            <Text style={styles.sectionTitle}>
+              Stores ({filteredStores.length})
+            </Text>
           </View>
           {filteredStores.map((store) => (
-            <Pressable key={store.id} style={styles.storeCard}>
+            <View key={store.id} style={styles.storeCard}>
               <Image
                 source={{
-                  uri: store.logo_url || 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800&fit=crop&q=80',
+                  uri: store.logo_url || 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400',
                 }}
                 style={styles.storeLogo}
               />
               <View style={styles.storeInfo}>
                 <Text style={styles.storeName}>{store.name}</Text>
                 <Text style={styles.storeCategory}>{store.category}</Text>
-                <Text style={styles.storeLocation}>
-                  Floor {store.floor} • {store.location_in_mall}
-                </Text>
-                {store.contact_number && (
-                  <Text style={styles.storeContact}>{store.contact_number}</Text>
-                )}
+                
+                <View style={styles.storeDetails}>
+                  {store.floor && (
+                    <View style={styles.detailItem}>
+                      <MapPin size={14} color="#666666" />
+                      <Text style={styles.detailText}>
+                        Floor {store.floor} • {store.location_in_mall}
+                      </Text>
+                    </View>
+                  )}
+                  
+                  {store.hours && (
+                    <View style={styles.detailItem}>
+                      <Clock size={14} color="#666666" />
+                      <Text style={styles.detailText}>{store.hours}</Text>
+                    </View>
+                  )}
+                  
+                  {store.contact_number && (
+                    <Pressable
+                      style={styles.detailItem}
+                      onPress={() => Linking.openURL(`tel:${store.contact_number}`)}>
+                      <Phone size={14} color="#666666" />
+                      <Text style={[styles.detailText, styles.phoneNumber]}>
+                        {store.contact_number}
+                      </Text>
+                    </Pressable>
+                  )}
+                </View>
               </View>
-            </Pressable>
+            </View>
           ))}
         </View>
       </View>
@@ -214,10 +263,11 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#f8f9fa',
   },
-  error: {
-    color: '#FF4B4B',
-    fontSize: 16,
+  headerImage: {
+    height: 250,
+    backgroundColor: '#f0f0f0',
   },
   backButton: {
     position: 'absolute',
@@ -228,18 +278,10 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 8,
   },
-  headerImage: {
-    width: '100%',
-    height: 250,
-    backgroundColor: '#f0f0f0',
-  },
-  content: {
-    flex: 1,
-    marginTop: -20,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    backgroundColor: '#f8f9fa',
-    paddingBottom: 40,
+  headerContainer: {
+    backgroundColor: '#ffffff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
   },
   header: {
     padding: 20,
@@ -249,29 +291,26 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#1a1a1a',
   },
-  addressContainer: {
+  addressButton: {
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 8,
   },
   address: {
+    flex: 1,
     fontSize: 14,
     color: '#666666',
-    marginLeft: 4,
+    marginHorizontal: 4,
   },
-  description: {
-    fontSize: 14,
-    color: '#666666',
-    marginTop: 12,
-    lineHeight: 20,
+  content: {
+    padding: 20,
   },
-  categoriesSection: {
-    marginTop: 20,
+  section: {
+    marginBottom: 24,
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
     marginBottom: 12,
   },
   sectionTitle: {
@@ -280,15 +319,23 @@ const styles = StyleSheet.create({
     color: '#1a1a1a',
     marginLeft: 8,
   },
+  description: {
+    fontSize: 14,
+    color: '#666666',
+    lineHeight: 20,
+  },
   categoriesScroll: {
-    paddingHorizontal: 16,
+    marginHorizontal: -20,
+  },
+  categoriesContent: {
+    paddingHorizontal: 20,
   },
   categoryChip: {
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
     backgroundColor: '#ffffff',
-    marginHorizontal: 4,
+    marginRight: 8,
     borderWidth: 1,
     borderColor: '#e9ecef',
   },
@@ -304,15 +351,11 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontWeight: '500',
   },
-  storesSection: {
-    marginTop: 24,
-  },
   storeCard: {
     flexDirection: 'row',
     backgroundColor: '#ffffff',
-    marginHorizontal: 20,
-    marginBottom: 12,
     borderRadius: 12,
+    marginBottom: 12,
     padding: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -340,14 +383,36 @@ const styles = StyleSheet.create({
     color: '#FF4B4B',
     marginTop: 2,
   },
-  storeLocation: {
-    fontSize: 12,
-    color: '#666666',
+  storeDetails: {
+    marginTop: 8,
+  },
+  detailItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginTop: 4,
   },
-  storeContact: {
+  detailText: {
     fontSize: 12,
     color: '#666666',
-    marginTop: 2,
+    marginLeft: 4,
+  },
+  phoneNumber: {
+    textDecorationLine: 'underline',
+  },
+  error: {
+    color: '#FF4B4B',
+    fontSize: 16,
+    marginBottom: 16,
+  },
+  retryButton: {
+    backgroundColor: '#FF4B4B',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  retryText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '500',
   },
 });

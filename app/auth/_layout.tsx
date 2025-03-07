@@ -1,16 +1,16 @@
 import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { useAuth } from '@/hooks/useAuth';
-import { Redirect, router } from 'expo-router';
+import { router } from 'expo-router';
 
 export default function AuthLayout() {
   const { session, isLoading } = useAuth();
-
+  
   useEffect(() => {
-    if (session) {
+    if (!isLoading && session) {
       router.replace('/(tabs)');
     }
-  }, [session]);
+  }, [isLoading, session]);
 
   if (isLoading) {
     return null;

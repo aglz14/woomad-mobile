@@ -20,7 +20,8 @@ export default function MallsLayout() {
         options={{
           title: 'Detalles del Centro Comercial',
           headerShown: true,
-          headerBackTitle: 'Centros',
+          headerBackTitle: 'Volver',
+          href: null,
         }}
       />
     </Stack>

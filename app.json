@@ -1,24 +1,25 @@
 {
   "expo": {
-    "name": "bolt-expo-nativewind",
-    "slug": "bolt-expo-nativewind",
+    "name": "Mall App",
+    "slug": "mall-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=800",
+    "icon": "./assets/icon.png",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true
     },
     "web": {
       "bundler": "metro",
-      "output": "single",
-      "favicon": "https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=32"
+      "favicon": "./assets/favicon.png"
     },
     "plugins": ["expo-router"],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ]
   }
 }

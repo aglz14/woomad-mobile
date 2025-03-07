@@ -1,22 +1,63 @@
-import { Tabs } from 'expo-router';
+import { Tabs, usePathname } from 'expo-router';
 import { Chrome as Home, Tag, MapPin, User, Settings } from 'lucide-react-native';
 import { useAuth } from '@/hooks/useAuth';
-import { Redirect } from 'expo-router';
+import { useEffect, useMemo } from 'react';
+import { router } from 'expo-router';
 
 export default function TabLayout() {
   const { isAdmin, isLoading, session } = useAuth();
+  const pathname = usePathname();
+
+  const tabs = useMemo(() => {
+    const commonTabs = [
+      {
+        name: "index",
+        title: "Inicio",
+        icon: Home
+      },
+      {
+        name: "promotions",
+        title: "Promociones",
+        icon: Tag
+      },
+      {
+        name: "malls",
+        title: "Centros",
+        icon: MapPin
+      },
+      {
+        name: "profile",
+        title: "Perfil",
+        icon: User
+      }
+    ];
+
+    if (isAdmin) {
+      commonTabs.push({
+        name: "admin",
+        title: "Panel",
+        icon: Settings
+      });
+    }
+
+    return commonTabs;
+  }, [isAdmin]);
+
+  useEffect(() => {
+    if (!isLoading && !session) {
+      router.replace('/auth/login');
+    }
+  }, [isLoading, session]);
 
   if (isLoading) {
     return null;
   }
 
-  if (!session) {
-    return <Redirect href="/auth/login" />;
-  }
-
   return (
     <Tabs
       screenOptions={{
+        href: null,
+        unmountOnBlur: true,
         headerShown: false,
         tabBarStyle: {
           backgroundColor: '#ffffff',
@@ -24,48 +65,24 @@ export default function TabLayout() {
         },
         tabBarActiveTintColor: '#FF4B4B',
         tabBarInactiveTintColor: '#8E8E93',
-      }}>
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Inicio',
-          href: session ? undefined : null,
-          tabBarIcon: ({ size, color }) => <Home size={size} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="promotions"
-        options={{
-          title: 'Promociones',
-          href: session ? undefined : null,
-          tabBarIcon: ({ size, color }) => <Tag size={size} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="malls"
-        options={{
-          title: 'Centros',
-          href: session ? undefined : null,
-          tabBarIcon: ({ size, color }) => <MapPin size={size} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: 'Perfil',
-          href: session ? undefined : null,
-          tabBarIcon: ({ size, color }) => <User size={size} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="admin"
-        options={{
-          title: 'Admin',
-          tabBarIcon: ({ size, color }) => <Settings size={size} color={color} />,
-          tabBarLabel: 'Panel',
-          href: isAdmin ? '/admin' : null, // This will hide the tab for non-admin users
-        }}
-      />
+        tabBarHideOnKeyboard: true,
+      }}
+    >
+      {tabs.map((tab) => (
+        <Tabs.Screen
+          key={tab.name}
+          name={tab.name}
+          options={{
+            title: tab.title,
+            href: session ? undefined : null,
+            tabBarIcon: ({ size, color }) => {
+              const Icon = tab.icon;
+              return <Icon size={size} color={color} />;
+            },
+            tabBarStyle: pathname.startsWith('/malls/') ? { display: 'none' } : undefined,
+          }}
+        />
+      ))}
     </Tabs>
   );
 }
