@@ -1,16 +1,19 @@
+import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { useAuth } from '@/hooks/useAuth';
-import { Redirect } from 'expo-router';
+import { Redirect, router } from 'expo-router';
 
 export default function AuthLayout() {
   const { session, isLoading } = useAuth();
 
+  useEffect(() => {
+    if (session) {
+      router.replace('/(tabs)');
+    }
+  }, [session]);
+
   if (isLoading) {
     return null;
-  }
-
-  if (session) {
-    return <Redirect href="/(tabs)" />;
   }
 
   return (
