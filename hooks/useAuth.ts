@@ -12,6 +12,23 @@ export function useAuth() {
   const [session, setSession] = useState<Session | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
 
+  async function signOut() {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
+      // Clear local state
+      setSession(null);
+      setRole('user');
+      setIsAdmin(false);
+      
+      // Router will handle navigation through onAuthStateChange
+    } catch (error) {
+      console.error('Error signing out:', error);
+      throw error;
+    }
+  }
+
   useEffect(() => {
     checkUser();
     
@@ -88,5 +105,5 @@ export function useAuth() {
     }
   }
 
-  return { isAdmin, isLoading, role, session, authError };
+  return { isAdmin, isLoading, role, session, authError, signOut };
 }

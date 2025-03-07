@@ -2,6 +2,7 @@ import { View, Text, StyleSheet, ScrollView, Image, Pressable, ActivityIndicator
 import { MapPin, Search } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
 import { useEffect, useState } from 'react';
+import { router } from 'expo-router';
 import * as Location from 'expo-location';
 import { PostgrestError } from '@supabase/supabase-js';
 
@@ -164,7 +165,9 @@ export default function MallsScreen() {
 
       <ScrollView style={styles.content}>
         {filteredMalls.map((mall) => (
-          <Pressable key={mall.id} style={styles.mallCard}>
+          <Pressable key={mall.id} style={styles.mallCard}
+            onPress={() => router.push(`/malls/${mall.id}`)}
+          >
             <Image
               source={{
                 uri: mall.image || 'https://images.unsplash.com/photo-1581235720704-06d3acfcb36f?w=800&fit=crop&q=80',

@@ -1,28 +1,32 @@
 import { View, Text, StyleSheet, Image, Pressable, ScrollView } from 'react-native';
 import { Bell, Heart, Settings, ChevronRight } from 'lucide-react-native';
-import { supabase } from '@/lib/supabase';
-import { router } from 'expo-router';
 import { useAuth } from '@/hooks/useAuth';
+import { useState } from 'react';
 
 export default function ProfileScreen() {
-  const { session } = useAuth();
+  const { session, signOut } = useAuth();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   async function handleLogout() {
-    await supabase.auth.signOut();
-    router.replace('/auth/login');
+    try {
+      setIsLoggingOut(true);
+      await signOut();
+    } catch (error) {
+      console.error('Error during logout:', error);
+    } finally {
+      setIsLoggingOut(false);
+    }
   }
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Mi Perfil</Text>
-        <View style={styles.profile}>
-          <Image 
-            source={{ uri: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=800&fit=crop&q=80' }}
-            style={styles.avatar}
-          />
-          <Text style={styles.name}>{session?.user?.user_metadata?.full_name || 'Usuario'}</Text>
-          <Text style={styles.email}>{session?.user?.email}</Text>
+        <View style={styles.headerContent}>
+          <Text style={styles.title}>Mi Perfil</Text>
+          <View style={styles.userInfo}>
+            <Text style={styles.name}>{session?.user?.user_metadata?.full_name || 'Usuario'}</Text>
+            <Text style={styles.email}>{session?.user?.email}</Text>
+          </View>
         </View>
       </View>
 
@@ -64,8 +68,13 @@ export default function ProfileScreen() {
           </Pressable>
         </View>
 
-        <Pressable style={styles.logoutButton} onPress={handleLogout}>
-          <Text style={styles.logoutText}>Cerrar Sesión</Text>
+        <Pressable 
+          style={[styles.logoutButton, isLoggingOut && styles.logoutButtonDisabled]} 
+          onPress={handleLogout}
+          disabled={isLoggingOut}>
+          <Text style={styles.logoutText}>
+            {isLoggingOut ? 'Cerrando sesión...' : 'Cerrar Sesión'}
+          </Text>
         </Pressable>
       </ScrollView>
     </View>
@@ -84,20 +93,16 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
   },
+  headerContent: {
+    marginBottom: 16,
+  },
   title: {
     fontSize: 32,
     fontWeight: '700',
     color: '#1a1a1a',
-    marginBottom: 20,
   },
-  profile: {
-    alignItems: 'center',
-  },
-  avatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    marginBottom: 16,
+  userInfo: {
+    marginTop: 12,
   },
   name: {
     fontSize: 24,
@@ -146,6 +151,9 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
+  },
+  logoutButtonDisabled: {
+    opacity: 0.7,
   },
   logoutText: {
     color: '#ffffff',
