@@ -25,7 +25,7 @@ export default function TabLayout() {
 
   // Define tabs based on user role
   const tabs = useMemo((): TabItem[] => {
-    const commonTabs = [
+    return [
       {
         name: 'index',
         title: 'Inicio',
@@ -47,17 +47,6 @@ export default function TabLayout() {
         iconName: 'person-outline',
       },
     ];
-
-    // Add admin tab only for admin users
-    if (isAdmin) {
-      commonTabs.push({
-        name: 'admin',
-        title: 'Panel',
-        iconName: 'settings-outline',
-      });
-    }
-
-    return commonTabs;
   }, [isAdmin]);
 
   // Handle authentication and routing
@@ -130,10 +119,7 @@ export default function TabLayout() {
         tabBarStyle: {
           backgroundColor: '#ffffff',
           borderTopColor: '#f0f0f0',
-          elevation: 8,
-          shadowOpacity: 0.1,
-          shadowRadius: 4,
-          shadowOffset: { width: 0, height: -2 },
+          boxShadow: '0px -2px 4px rgba(0, 0, 0, 0.1)',
           height: 60,
           paddingBottom: 8,
         },

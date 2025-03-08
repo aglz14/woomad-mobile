@@ -106,21 +106,17 @@ export default function PromotionsScreen() {
       const { data, error: fetchError } = await supabase
         .from('promotions')
         .select(
-          `
-          id,
-          title,
-          description,
-          image,
-          end_date,
-          store:store_id (
+          `*, 
+          store:stores!promotions_store_id_fkey (
+            id,
             name,
-            mall:mall_id (
+            mall:shopping_malls!stores_mall_id_fkey (
+              id,
               name,
               latitude,
               longitude
             )
-          )
-        `
+          )`
         )
         .gt('end_date', now);
 
@@ -354,11 +350,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderRadius: 12,
     marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.1)',
     overflow: 'hidden',
   },
   promotionImage: {

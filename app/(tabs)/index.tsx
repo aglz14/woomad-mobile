@@ -74,12 +74,12 @@ export default function HomeScreen() {
       const { data: promotionsData, error: promotionsError } = await supabase
         .from('promotions')
         .select(`
-          id,
-          title,
-          image,
-          store:store_id (
+          *, 
+          store:stores!promotions_store_id_fkey (
+            id,
             name,
-            mall:mall_id (
+            mall:shopping_malls!stores_mall_id_fkey (
+              id,
               name,
               latitude,
               longitude
@@ -91,18 +91,37 @@ export default function HomeScreen() {
       if (promotionsError) throw promotionsError;
 
       // Calculate distances for promotions
-      const promotionsWithDistance = (promotionsData || [])
-        .map(promo => ({
-          ...promo,
-          distance: calculateDistance(
-            userLocation.coords.latitude,
-            userLocation.coords.longitude,
-            promo.store[0].mall[0].latitude,
-            promo.store[0].mall[0].longitude
-          )
-        }))
-        .sort((a, b) => (a.distance || 0) - (b.distance || 0))
-        .slice(0, 5); // Get only first 5 promotions
+      const promotionsWithDistance = (promotionsData || []).map(promo => {
+        const store = Array.isArray(promo.store) ? promo.store[0] : promo.store;
+        const mall = store?.mall && Array.isArray(store.mall) ? store.mall[0] : store?.mall;
+        
+        const distance = mall && userLocation ? calculateDistance(
+          userLocation.coords.latitude,
+          userLocation.coords.longitude,
+          mall.latitude,
+          mall.longitude
+        ) : Infinity;
+
+        return {
+          id: promo.id,
+          title: promo.title,
+          image: promo.image,
+          distance,
+          store: {
+            name: store?.name || '',
+            mall: mall ? {
+              name: mall.name,
+              latitude: mall.latitude,
+              longitude: mall.longitude
+            } : undefined
+          }
+        };
+      });
+
+      // Sort by distance and get top 5
+      const nearestPromotions = promotionsWithDistance
+        .sort((a, b) => a.distance - b.distance)
+        .slice(0, 5);
 
       // Fetch malls
       const { data: mallsData, error: mallsError } = await supabase
@@ -112,7 +131,7 @@ export default function HomeScreen() {
       if (mallsError) throw mallsError;
 
       // Calculate distances for malls
-      const mallsWithDistance = await Promise.all((mallsData || []).map(async (mall) => {
+      const mallsWithDistance = await Promise.all((mallsData || []).map(async mall => {
         const { count } = await supabase
           .from('stores')
           .select('*', { count: 'exact', head: true })
@@ -137,24 +156,8 @@ export default function HomeScreen() {
         .sort((a, b) => a.distance_value - b.distance_value)
         .slice(0, 5); // Get only first 5 malls
 
-      // Convert promotion data to match Promotion type
-      const typedPromotions = promotionsWithDistance.map(promo => ({
-        id: promo.id,
-        title: promo.title,
-        image: promo.image,
-        distance: promo.distance,
-        store: {
-          name: promo.store[0].name,
-          mall: {
-            name: promo.store[0].mall[0].name,
-            latitude: promo.store[0].mall[0].latitude,
-            longitude: promo.store[0].mall[0].longitude
-          }
-        }
-      }));
-
-      setPromotions(typedPromotions);
-      setMalls(nearestMalls);
+      setPromotions(nearestPromotions);
+      setMalls(nearestMalls); 
       setError(null);
     } catch (err) {
       console.error('Error fetching data:', err);
@@ -191,9 +194,9 @@ export default function HomeScreen() {
               <Image source={{ uri: promo.image }} style={styles.promotionImage} />
               <View style={styles.promotionInfo}>
                 <Text style={styles.promotionTitle}>{promo.title}</Text>
-                <Text style={styles.promotionStore}>{promo.store.name}</Text>
+                <Text style={styles.promotionStore}>{promo.store?.name}</Text>
                 <Text style={styles.promotionMall}>
-                  {promo.store.mall.name} • {promo.distance?.toFixed(1)}km
+                  {promo.store?.mall?.name} • {promo.distance?.toFixed(1)}km
                 </Text>
               </View>
             </Pressable>
@@ -268,11 +271,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderRadius: 12,
     marginRight: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.1)',
   },
   promotionImage: {
     width: '100%',
@@ -303,11 +302,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderRadius: 12,
     marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.1)',
     overflow: 'hidden',
   },
   mallImage: {

@@ -19,12 +19,14 @@ export default function RootLayout() {
 
   return (
     <>
-      <Stack screenOptions={{ headerShown: false }} initialRouteName={session ? '(tabs)' : 'auth'}>
+      <Stack screenOptions={{ headerShown: false }}>
         {session ? (
           <Stack.Screen name="(tabs)" />
         ) : (
           <Stack.Screen name="auth" />
         )}
+        <Stack.Screen name="admin" options={{ headerShown: false }} />
+        <Stack.Screen name="malls" />
         <Stack.Screen name="+not-found" />
       </Stack>
       <StatusBar style="auto" />
