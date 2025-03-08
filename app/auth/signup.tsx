@@ -1,9 +1,16 @@
-import { View, Text, StyleSheet, TextInput, Pressable, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  Pressable,
+  ActivityIndicator,
+  ScrollView,
+} from 'react-native';
 import { Link, router } from 'expo-router';
 import { useState, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { CircleAlert as AlertCircle, ArrowLeft } from 'lucide-react-native';
-import { ScrollView } from 'react-native-gesture-handler';
 
 export default function SignUpScreen() {
   const [email, setEmail] = useState('');
@@ -23,15 +30,16 @@ export default function SignUpScreen() {
       setLoading(true);
       setError(null);
 
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: fullName,
+      const { data: signUpData, error: signUpError } =
+        await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              full_name: fullName,
+            },
           },
-        },
-      });
+        });
 
       if (signUpError) throw signUpError;
 
@@ -69,21 +77,22 @@ export default function SignUpScreen() {
   }
 
   return (
-    <ScrollView 
+    <ScrollView
       ref={scrollViewRef}
       style={styles.container}
       contentContainerStyle={styles.contentContainer}
-      keyboardShouldPersistTaps="handled">
-      <Pressable 
-        style={styles.backButton} 
-        onPress={() => router.back()}>
+      keyboardShouldPersistTaps="handled"
+    >
+      <Pressable style={styles.backButton} onPress={() => router.back()}>
         <ArrowLeft size={24} color="#1a1a1a" />
       </Pressable>
 
       <View style={styles.mainContent}>
         <View style={styles.header}>
           <Text style={styles.title}>Crear Cuenta</Text>
-          <Text style={styles.subtitle}>Regístrate para descubrir las mejores ofertas</Text>
+          <Text style={styles.subtitle}>
+            Regístrate para descubrir las mejores ofertas
+          </Text>
         </View>
 
         {error && (
@@ -102,7 +111,9 @@ export default function SignUpScreen() {
               value={fullName}
               onChangeText={setFullName}
               onFocus={() => {
-                scrollViewRef.current?.scrollTo({ y: 100, animated: true });
+                if (scrollViewRef.current) {
+                  scrollViewRef.current.scrollTo({ y: 100, animated: true });
+                }
               }}
             />
           </View>
@@ -117,7 +128,9 @@ export default function SignUpScreen() {
               autoCapitalize="none"
               keyboardType="email-address"
               onFocus={() => {
-                scrollViewRef.current?.scrollTo({ y: 150, animated: true });
+                if (scrollViewRef.current) {
+                  scrollViewRef.current.scrollTo({ y: 150, animated: true });
+                }
               }}
             />
           </View>
@@ -131,7 +144,9 @@ export default function SignUpScreen() {
               onChangeText={setPassword}
               secureTextEntry
               onFocus={() => {
-                scrollViewRef.current?.scrollTo({ y: 200, animated: true });
+                if (scrollViewRef.current) {
+                  scrollViewRef.current.scrollTo({ y: 200, animated: true });
+                }
               }}
             />
           </View>
@@ -139,7 +154,8 @@ export default function SignUpScreen() {
           <Pressable
             style={[styles.button, loading && styles.buttonDisabled]}
             onPress={handleSignUp}
-            disabled={loading}>
+            disabled={loading}
+          >
             {loading ? (
               <ActivityIndicator color="#fff" />
             ) : (
