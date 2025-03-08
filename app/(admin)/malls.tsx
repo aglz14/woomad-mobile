@@ -1,8 +1,22 @@
-import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Pressable,
+  TextInput,
+  ActivityIndicator,
+} from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
 import { supabase } from '@/lib/supabase';
 import { useState, useEffect } from 'react';
-import { Plus, CreditCard as Edit2, Trash2, CircleAlert as AlertCircle } from 'lucide-react-native';
+import {
+  Plus,
+  CreditCard as Edit2,
+  Trash2,
+  CircleAlert as AlertCircle,
+} from 'lucide-react-native';
+import AdminTabBar from '@/components/AdminTabBar';
 
 const defaultFormValues = {
   name: '',
@@ -27,9 +41,15 @@ export default function ManageMallsScreen() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
-  const { control, handleSubmit, reset, setValue, formState: { errors } } = useForm<MallForm>({
-    defaultValues: defaultFormValues
+
+  const {
+    control,
+    handleSubmit,
+    reset,
+    setValue,
+    formState: { errors },
+  } = useForm<MallForm>({
+    defaultValues: defaultFormValues,
   });
 
   useEffect(() => {
@@ -39,17 +59,16 @@ export default function ManageMallsScreen() {
   async function fetchMalls() {
     try {
       setLoading(true);
-      const { data, error: fetchError } = await supabase
+      const { data, error } = await supabase
         .from('shopping_malls')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('name');
 
-      if (fetchError) throw fetchError;
+      if (error) throw error;
       setMalls(data || []);
-      setError(null);
     } catch (err) {
-      setError('Error loading shopping centers');
       console.error('Error fetching malls:', err);
+      setError('Error loading shopping centers. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -60,23 +79,33 @@ export default function ManageMallsScreen() {
       setLoading(true);
       setError(null);
 
-      const mallData = {
-        ...data,
-        latitude: parseFloat(data.latitude),
-        longitude: parseFloat(data.longitude),
-      };
-
       if (editingId) {
+        // Update existing mall
         const { error: updateError } = await supabase
           .from('shopping_malls')
-          .update(mallData)
+          .update({
+            name: data.name,
+            address: data.address,
+            description: data.description,
+            latitude: parseFloat(data.latitude),
+            longitude: parseFloat(data.longitude),
+            image: data.image,
+          })
           .eq('id', editingId);
 
         if (updateError) throw updateError;
       } else {
+        // Insert new mall
         const { error: insertError } = await supabase
           .from('shopping_malls')
-          .insert([mallData]);
+          .insert({
+            name: data.name,
+            address: data.address,
+            description: data.description,
+            latitude: parseFloat(data.latitude),
+            longitude: parseFloat(data.longitude),
+            image: data.image,
+          });
 
         if (insertError) throw insertError;
       }
@@ -85,7 +114,11 @@ export default function ManageMallsScreen() {
       setEditingId(null);
       await fetchMalls();
     } catch (err) {
-      setError(editingId ? 'Error updating shopping center' : 'Error creating shopping center');
+      setError(
+        editingId
+          ? 'Error updating shopping center'
+          : 'Error creating shopping center'
+      );
       console.error('Error saving mall:', err);
     } finally {
       setLoading(false);
@@ -107,17 +140,15 @@ export default function ManageMallsScreen() {
   async function deleteMall(id: string) {
     try {
       setLoading(true);
-      const { error: deleteError } = await supabase
+      const { error } = await supabase
         .from('shopping_malls')
         .delete()
         .eq('id', id);
-
-      if (deleteError) throw deleteError;
-      setError(null);
+      if (error) throw error;
       await fetchMalls();
     } catch (err) {
-      setError('Error deleting shopping center');
       console.error('Error deleting mall:', err);
+      setError('Error deleting shopping center. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -125,197 +156,217 @@ export default function ManageMallsScreen() {
 
   if (loading && malls.length === 0) {
     return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#FF4B4B" />
+      <View style={styles.container}>
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color="#FF4B4B" />
+        </View>
+        <AdminTabBar />
       </View>
     );
   }
 
   return (
-    <ScrollView style={styles.container}>
-      {error && (
-        <View style={styles.errorContainer}>
-          <AlertCircle color="#FF4B4B" size={20} />
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
-      )}
-
-      <View style={styles.form}>
-        <Text style={styles.formTitle}>
-          {editingId ? 'Edit Shopping Center' : 'Add New Shopping Center'}
-        </Text>
-
-        <Controller
-          control={control}
-          name="name"
-          rules={{ required: 'Name is required' }}
-          render={({ field: { onChange, value } }) => (
-            <View style={styles.inputContainer}>
-              <TextInput
-                style={[styles.input, errors.name && styles.inputError]}
-                placeholder="Name"
-                value={value}
-                onChangeText={onChange}
-              />
-              {errors.name && (
-                <Text style={styles.errorMessage}>{errors.name.message}</Text>
-              )}
-            </View>
-          )}
-        />
-
-        <Controller
-          control={control}
-          name="address"
-          rules={{ required: 'Address is required' }}
-          render={({ field: { onChange, value } }) => (
-            <View style={styles.inputContainer}>
-              <TextInput
-                style={[styles.input, errors.address && styles.inputError]}
-                placeholder="Address"
-                value={value}
-                onChangeText={onChange}
-              />
-              {errors.address && (
-                <Text style={styles.errorMessage}>{errors.address.message}</Text>
-              )}
-            </View>
-          )}
-        />
-
-        <Controller
-          control={control}
-          name="description"
-          render={({ field: { onChange, value } }) => (
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              placeholder="Description"
-              value={value}
-              onChangeText={onChange}
-              multiline
-              numberOfLines={4}
-            />
-          )}
-        />
-
-        <View style={styles.row}>
-          <Controller
-            control={control}
-            name="latitude"
-            rules={{
-              required: 'Latitude is required',
-              pattern: {
-                value: /^-?([0-8]?[0-9]|90)(\.[0-9]+)?$/,
-                message: 'Invalid latitude (-90 to 90)',
-              },
-            }}
-            render={({ field: { onChange, value } }) => (
-              <View style={[styles.inputContainer, styles.halfWidth]}>
-                <TextInput
-                  style={[styles.input, errors.latitude && styles.inputError]}
-                  placeholder="Latitude"
-                  value={value}
-                  onChangeText={onChange}
-                  keyboardType="numeric"
-                />
-                {errors.latitude && (
-                  <Text style={styles.errorMessage}>{errors.latitude.message}</Text>
-                )}
-              </View>
-            )}
-          />
-
-          <Controller
-            control={control}
-            name="longitude"
-            rules={{
-              required: 'Longitude is required',
-              pattern: {
-                value: /^-?([0-9]?[0-9]|1[0-7][0-9]|180)(\.[0-9]+)?$/,
-                message: 'Invalid longitude (-180 to 180)',
-              },
-            }}
-            render={({ field: { onChange, value } }) => (
-              <View style={[styles.inputContainer, styles.halfWidth]}>
-                <TextInput
-                  style={[styles.input, errors.longitude && styles.inputError]}
-                  placeholder="Longitude"
-                  value={value}
-                  onChangeText={onChange}
-                  keyboardType="numeric"
-                />
-                {errors.longitude && (
-                  <Text style={styles.errorMessage}>{errors.longitude.message}</Text>
-                )}
-              </View>
-            )}
-          />
-        </View>
-
-        <Controller
-          control={control}
-          name="image"
-          render={({ field: { onChange, value } }) => (
-            <TextInput
-              style={styles.input}
-              placeholder="Image URL"
-              value={value}
-              onChangeText={onChange}
-            />
-          )}
-        />
-
-        <View style={styles.buttonContainer}>
-          <Pressable
-            style={[styles.button, styles.submitButton]}
-            onPress={handleSubmit(onSubmit)}
-            disabled={loading}>
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.buttonText}>
-                {editingId ? 'Update' : 'Add'} Shopping Center
-              </Text>
-            )}
-          </Pressable>
-
-          {editingId && (
-            <Pressable
-              style={[styles.button, styles.cancelButton]}
-              onPress={() => {
-                reset(defaultFormValues);
-                setEditingId(null);
-              }}>
-              <Text style={styles.cancelButtonText}>Cancel</Text>
-            </Pressable>
-          )}
-        </View>
-      </View>
-
-      <View style={styles.listContainer}>
-        <Text style={styles.listTitle}>Shopping Centers</Text>
-        {malls.map((mall) => (
-          <View key={mall.id} style={styles.mallCard}>
-            <View style={styles.mallInfo}>
-              <Text style={styles.mallName}>{mall.name}</Text>
-              <Text style={styles.mallAddress}>{mall.address}</Text>
-            </View>
-            <View style={styles.actions}>
-              <Pressable
-                style={[styles.actionButton, styles.editButton]}
-                onPress={() => editMall(mall)}>
-                <Edit2 size={20} color="#666666" />
-              </Pressable>
-              <Pressable
-                style={[styles.actionButton, styles.deleteButton]}
-                onPress={() => deleteMall(mall.id)}>
-                <Trash2 size={20} color="#FF4B4B" />
-              </Pressable>
-            </View>
+    <View style={styles.container}>
+      <ScrollView style={styles.scrollContainer}>
+        {error && (
+          <View style={styles.errorContainer}>
+            <AlertCircle color="#FF4B4B" size={20} />
+            <Text style={styles.errorText}>{error}</Text>
           </View>
-        ))}
-      </View>
-    </ScrollView>
+        )}
+
+        <View style={styles.form}>
+          <Text style={styles.formTitle}>
+            {editingId ? 'Edit Shopping Center' : 'Add New Shopping Center'}
+          </Text>
+
+          <Controller
+            control={control}
+            name="name"
+            rules={{ required: 'Name is required' }}
+            render={({ field: { onChange, value } }) => (
+              <View style={styles.inputContainer}>
+                <TextInput
+                  style={[styles.input, errors.name && styles.inputError]}
+                  placeholder="Name"
+                  value={value}
+                  onChangeText={onChange}
+                />
+                {errors.name && (
+                  <Text style={styles.errorMessage}>{errors.name.message}</Text>
+                )}
+              </View>
+            )}
+          />
+
+          <Controller
+            control={control}
+            name="address"
+            rules={{ required: 'Address is required' }}
+            render={({ field: { onChange, value } }) => (
+              <View style={styles.inputContainer}>
+                <TextInput
+                  style={[styles.input, errors.address && styles.inputError]}
+                  placeholder="Address"
+                  value={value}
+                  onChangeText={onChange}
+                />
+                {errors.address && (
+                  <Text style={styles.errorMessage}>
+                    {errors.address.message}
+                  </Text>
+                )}
+              </View>
+            )}
+          />
+
+          <Controller
+            control={control}
+            name="description"
+            render={({ field: { onChange, value } }) => (
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                placeholder="Description"
+                value={value}
+                onChangeText={onChange}
+                multiline
+                numberOfLines={4}
+              />
+            )}
+          />
+
+          <View style={styles.row}>
+            <Controller
+              control={control}
+              name="latitude"
+              rules={{
+                required: 'Latitude is required',
+                pattern: {
+                  value: /^-?([0-8]?[0-9]|90)(\.[0-9]+)?$/,
+                  message: 'Invalid latitude (-90 to 90)',
+                },
+              }}
+              render={({ field: { onChange, value } }) => (
+                <View style={[styles.inputContainer, styles.halfWidth]}>
+                  <TextInput
+                    style={[styles.input, errors.latitude && styles.inputError]}
+                    placeholder="Latitude"
+                    value={value}
+                    onChangeText={onChange}
+                    keyboardType="numeric"
+                  />
+                  {errors.latitude && (
+                    <Text style={styles.errorMessage}>
+                      {errors.latitude.message}
+                    </Text>
+                  )}
+                </View>
+              )}
+            />
+
+            <Controller
+              control={control}
+              name="longitude"
+              rules={{
+                required: 'Longitude is required',
+                pattern: {
+                  value: /^-?([0-9]?[0-9]|1[0-7][0-9]|180)(\.[0-9]+)?$/,
+                  message: 'Invalid longitude (-180 to 180)',
+                },
+              }}
+              render={({ field: { onChange, value } }) => (
+                <View style={[styles.inputContainer, styles.halfWidth]}>
+                  <TextInput
+                    style={[
+                      styles.input,
+                      errors.longitude && styles.inputError,
+                    ]}
+                    placeholder="Longitude"
+                    value={value}
+                    onChangeText={onChange}
+                    keyboardType="numeric"
+                  />
+                  {errors.longitude && (
+                    <Text style={styles.errorMessage}>
+                      {errors.longitude.message}
+                    </Text>
+                  )}
+                </View>
+              )}
+            />
+          </View>
+
+          <Controller
+            control={control}
+            name="image"
+            render={({ field: { onChange, value } }) => (
+              <TextInput
+                style={styles.input}
+                placeholder="Image URL"
+                value={value}
+                onChangeText={onChange}
+              />
+            )}
+          />
+
+          <View style={styles.buttonContainer}>
+            <Pressable
+              style={[styles.button, styles.submitButton]}
+              onPress={handleSubmit(onSubmit)}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.buttonText}>
+                  {editingId ? 'Update' : 'Add'} Shopping Center
+                </Text>
+              )}
+            </Pressable>
+
+            {editingId && (
+              <Pressable
+                style={[styles.button, styles.cancelButton]}
+                onPress={() => {
+                  reset(defaultFormValues);
+                  setEditingId(null);
+                }}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </Pressable>
+            )}
+          </View>
+        </View>
+
+        <View style={styles.mallsContainer}>
+          <Text style={styles.listTitle}>Shopping Centers</Text>
+          {malls.map((mall) => (
+            <View key={mall.id} style={styles.mallCard}>
+              <View style={styles.mallInfo}>
+                <Text style={styles.mallName}>{mall.name}</Text>
+                <Text style={styles.mallAddress}>{mall.address}</Text>
+              </View>
+              <View style={styles.actions}>
+                <Pressable
+                  style={[styles.actionButton, styles.editButton]}
+                  onPress={() => editMall(mall)}
+                >
+                  <Edit2 size={20} color="#666666" />
+                </Pressable>
+                <Pressable
+                  style={[styles.actionButton, styles.deleteButton]}
+                  onPress={() => deleteMall(mall.id)}
+                >
+                  <Trash2 size={20} color="#FF4B4B" />
+                </Pressable>
+              </View>
+            </View>
+          ))}
+        </View>
+      </ScrollView>
+
+      <AdminTabBar />
+    </View>
   );
 }
 
@@ -323,6 +374,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8f9fa',
+  },
+  scrollContainer: {
+    flex: 1,
+    paddingBottom: 100,
   },
   centered: {
     flex: 1,
@@ -413,7 +468,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  listContainer: {
+  mallsContainer: {
     padding: 20,
   },
   listTitle: {

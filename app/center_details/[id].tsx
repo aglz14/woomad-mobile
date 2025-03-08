@@ -1,8 +1,24 @@
-import { View, Text, StyleSheet, ScrollView, Image, TextInput, Pressable, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Image,
+  TextInput,
+  Pressable,
+  ActivityIndicator,
+} from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useState, useEffect } from 'react';
-import { MapPin, Phone, Clock, Store, ArrowLeft, Tag } from 'lucide-react-native';
+import {
+  MapPin,
+  Phone,
+  Clock,
+  Store,
+  ArrowLeft,
+  Tag,
+} from 'lucide-react-native';
 import { router } from 'expo-router';
 
 type Category = {
@@ -14,11 +30,12 @@ type Store = {
   id: string;
   name: string;
   description: string;
-  category: string;
   floor: string;
-  location_in_mall: string;
-  contact_number: string;
-  hours: string;
+  local_number: string;
+  phone: string;
+  website: string;
+  image: string;
+  array_categories?: string[];
   active_promotions_count?: number;
 };
 
@@ -55,7 +72,7 @@ export default function CenterDetailsScreen() {
   async function fetchMallData() {
     try {
       setLoading(true);
-      
+
       // Fetch mall details
       const { data: mallData, error: mallError } = await supabase
         .from('shopping_malls')
@@ -66,64 +83,48 @@ export default function CenterDetailsScreen() {
       if (mallError) throw mallError;
       setMall(mallData);
 
-      // Fetch stores for this mall
+      // Fetch stores for this mall with array_categories
       const { data: storesData, error: storesError } = await supabase
         .from('stores')
-        .select(`
-          *,
-          array_categories,
-          promotions:promotions (count)
-        `)
+        .select(
+          `
+          id,
+          name,
+          description,
+          floor,
+          local_number,
+          phone,
+          website,
+          image,
+          array_categories
+        `
+        )
         .eq('mall_id', id)
-        .order('index', { ascending: true });
+        .order('name', { ascending: true });
 
       if (storesError) throw storesError;
-      
+
       // Get current date for active promotions check
       const now = new Date().toISOString();
-      
+
       // Count active promotions for each store
-      const storesWithPromotions = await Promise.all((storesData || []).map(async store => {
-        const { count } = await supabase
-          .from('promotions')
-          .select('*', { count: 'exact', head: true })
-          .eq('store_id', store.id)
-          .gt('end_date', now);
-        
-        return {
-          ...store,
-          active_promotions_count: count || 0
-        };
-      }));
-      
-      // Get all categories for the stores
-      const categoryIds = storesWithPromotions.reduce((acc: string[], store) => {
-        return acc.concat(store.array_categories || []);
-      }, []);
+      const storesWithPromotions = await Promise.all(
+        (storesData || []).map(async (store) => {
+          const { count } = await supabase
+            .from('promotions')
+            .select('*', { count: 'exact', head: true })
+            .eq('store_id', store.id)
+            .gt('end_date', now);
 
-      if (categoryIds && categoryIds.length > 0) {
-        const { data: categoriesData, error: categoriesError } = await supabase
-          .from('categories')
-          .select('*')
-          .in('id', categoryIds);
+          return {
+            ...store,
+            active_promotions_count: count || 0,
+          };
+        })
+      );
 
-        if (categoriesError) throw categoriesError;
-
-        // Map categories to stores
-        const processedStores = storesWithPromotions.map(store => ({
-          ...store,
-          categories: (store.array_categories || [])
-            .map(catId => categoriesData?.find(cat => cat.id === catId))
-            .filter(Boolean)
-        }));
-
-        setStores(processedStores);
-        setFilteredStores(processedStores);
-      } else {
-        setStores(storesWithPromotions);
-        setFilteredStores(storesWithPromotions);
-      }
-      
+      setStores(storesWithPromotions || []);
+      setFilteredStores(storesWithPromotions || []);
     } catch (err) {
       console.error('Error fetching mall data:', err);
       setError('Error loading mall data');
@@ -151,21 +152,32 @@ export default function CenterDetailsScreen() {
 
     // Apply category filter if selected
     if (selectedCategory) {
-      filtered = filtered.filter(store => 
-        store.array_categories?.includes(selectedCategory)
-      );
+      filtered = filtered.filter((store) => {
+        // Make sure array_categories exists and is an array
+        const categories = store.array_categories || [];
+        return categories.includes(selectedCategory);
+      });
     }
 
     // Apply search filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(store =>
-        store.name.toLowerCase().includes(query) ||
-        store.description?.toLowerCase().includes(query)
+      filtered = filtered.filter(
+        (store) =>
+          store.name.toLowerCase().includes(query) ||
+          store.description?.toLowerCase().includes(query)
       );
     }
 
     setFilteredStores(filtered);
+  }
+
+  // Helper function to get category names from IDs
+  function getCategoryNames(categoryIds: string[] = []) {
+    return categoryIds
+      .map((id) => categories.find((cat) => cat.id === id)?.name)
+      .filter(Boolean)
+      .join(', ');
   }
 
   if (loading) {
@@ -189,14 +201,14 @@ export default function CenterDetailsScreen() {
       <ScrollView>
         <Image
           source={{
-            uri: mall.image || 'https://images.unsplash.com/photo-1519567241348-f1f90a3faa10?w=800&fit=crop&q=80',
+            uri:
+              mall.image ||
+              'https://images.unsplash.com/photo-1519567241348-f1f90a3faa10?w=800&fit=crop&q=80',
           }}
           style={styles.coverImage}
         />
-        
-        <Pressable 
-          style={styles.backButton}
-          onPress={() => router.back()}>
+
+        <Pressable style={styles.backButton} onPress={() => router.back()}>
           <ArrowLeft color="#ffffff" size={24} />
         </Pressable>
 
@@ -219,89 +231,94 @@ export default function CenterDetailsScreen() {
               onChangeText={setSearchQuery}
             />
 
-            <ScrollView 
-              horizontal 
+            <ScrollView
+              horizontal
               showsHorizontalScrollIndicator={false}
-              style={styles.categoriesScroll}>
+              style={styles.categoriesScroll}
+            >
               <Pressable
                 style={[
                   styles.categoryChip,
                   !selectedCategory && styles.categoryChipSelected,
                 ]}
-                onPress={() => setSelectedCategory(null)}>
-                <Text style={[
-                  styles.categoryChipText,
-                  !selectedCategory && styles.categoryChipTextSelected,
-                ]}>Todas</Text>
+                onPress={() => setSelectedCategory(null)}
+              >
+                <Text
+                  style={[
+                    styles.categoryChipText,
+                    !selectedCategory && styles.categoryChipTextSelected,
+                  ]}
+                >
+                  Todas
+                </Text>
               </Pressable>
               {categories.map((category) => (
                 <Pressable
                   key={category.id}
                   style={[
                     styles.categoryChip,
-                    selectedCategory === category.id && styles.categoryChipSelected,
+                    selectedCategory === category.id &&
+                      styles.categoryChipSelected,
                   ]}
-                  onPress={() => setSelectedCategory(category.id)}>
-                  <Text style={[
-                    styles.categoryChipText,
-                    selectedCategory === category.id && styles.categoryChipTextSelected,
-                  ]}>{category.name}</Text>
+                  onPress={() => setSelectedCategory(category.id)}
+                >
+                  <Text
+                    style={[
+                      styles.categoryChipText,
+                      selectedCategory === category.id &&
+                        styles.categoryChipTextSelected,
+                    ]}
+                  >
+                    {category.name}
+                  </Text>
                 </Pressable>
               ))}
             </ScrollView>
           </View>
 
-          <View style={styles.storesSection}>
-            <Text style={styles.sectionTitle}>
-              Tiendas ({filteredStores.length})
-            </Text>
+          <View style={styles.storesList}>
             {filteredStores.map((store) => (
-              <Pressable 
-                key={store.id} 
+              <Pressable
+                key={store.id}
                 style={styles.storeCard}
-                onPress={() => router.push(`/store_details/${store.id}`)}>
+                onPress={() => router.push(`/store_details/${store.id}`)}
+              >
                 <View style={styles.storeInfo}>
                   <Text style={styles.storeName}>{store.name}</Text>
-                  <Text style={styles.storeDescription} numberOfLines={2}>
-                    {store.description}
-                  </Text>
-                  {store.active_promotions_count > 0 && (
-                    <View style={styles.promotionsBadge}>
-                      <Tag size={14} color="#FF4B4B" />
-                      <Text style={styles.promotionsCount}>
-                        {store.active_promotions_count} {store.active_promotions_count === 1 ? 'promoción activa' : 'promociones activas'}
+                  {store.array_categories &&
+                    store.array_categories.length > 0 && (
+                      <Text style={styles.storeCategory}>
+                        {getCategoryNames(store.array_categories)}
                       </Text>
-                    </View>
-                  )}
+                    )}
                   <View style={styles.storeDetails}>
                     {store.floor && (
                       <View style={styles.detailItem}>
-                        <Store size={16} color="#666666" />
+                        <MapPin size={14} color="#666666" />
                         <Text style={styles.detailText}>
-                          Piso {store.floor}
+                          {store.floor && `Floor ${store.floor}`}{' '}
+                          {store.local_number && `Local ${store.local_number}`}
                         </Text>
                       </View>
                     )}
-                    
-                    {store.contact_number && (
+                    {store.phone && (
                       <View style={styles.detailItem}>
-                        <Phone size={16} color="#666666" />
-                        <Text style={styles.detailText}>
-                          {store.contact_number}
-                        </Text>
-                      </View>
-                    )}
-                    
-                    {store.hours && (
-                      <View style={styles.detailItem}>
-                        <Clock size={16} color="#666666" />
-                        <Text style={styles.detailText}>
-                          {store.hours}
-                        </Text>
+                        <Phone size={14} color="#666666" />
+                        <Text style={styles.detailText}>{store.phone}</Text>
                       </View>
                     )}
                   </View>
                 </View>
+
+                {store.active_promotions_count &&
+                  store.active_promotions_count > 0 && (
+                    <View style={styles.promotionBadge}>
+                      <Tag size={14} color="#ffffff" />
+                      <Text style={styles.promotionCount}>
+                        {store.active_promotions_count}
+                      </Text>
+                    </View>
+                  )}
               </Pressable>
             ))}
           </View>
@@ -339,9 +356,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-    style: {
-      pointerEvents: 'auto'
-    },
+    pointerEvents: 'auto',
   },
   content: {
     flex: 1,
@@ -383,9 +398,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e9ecef',
     marginBottom: 16,
-    style: {
-      pointerEvents: 'auto'
-    },
+    pointerEvents: 'auto',
   },
   categoriesScroll: {
     marginHorizontal: -20,
@@ -411,14 +424,8 @@ const styles = StyleSheet.create({
   categoryChipTextSelected: {
     color: '#ffffff',
   },
-  storesSection: {
+  storesList: {
     marginBottom: 20,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#1a1a1a',
-    marginBottom: 16,
   },
   storeCard: {
     flexDirection: 'row',
@@ -438,27 +445,11 @@ const styles = StyleSheet.create({
     color: '#1a1a1a',
     marginBottom: 6,
   },
-  storeDescription: {
+  storeCategory: {
     fontSize: 14,
     color: '#666666',
     marginBottom: 16,
     lineHeight: 20,
-  },
-  promotionsBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    backgroundColor: '#FFF1F1',
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 6,
-    alignSelf: 'flex-start',
-  },
-  promotionsCount: {
-    fontSize: 12,
-    color: '#FF4B4B',
-    marginLeft: 4,
-    fontWeight: '500',
   },
   storeDetails: {
     flexDirection: 'row',
@@ -473,5 +464,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666666',
     marginLeft: 4,
+  },
+  promotionBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    backgroundColor: '#FF4B4B',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+  },
+  promotionCount: {
+    fontSize: 12,
+    color: '#ffffff',
+    marginLeft: 4,
+    fontWeight: '500',
   },
 });

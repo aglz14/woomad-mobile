@@ -1,8 +1,24 @@
-import { View, Text, StyleSheet, ScrollView, Image, ActivityIndicator, Pressable } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Image,
+  ActivityIndicator,
+  Pressable,
+} from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useState, useEffect } from 'react';
-import { Store, MapPin, Phone, Clock, ArrowLeft, Tag, Calendar } from 'lucide-react-native';
+import {
+  Store,
+  MapPin,
+  Phone,
+  Clock,
+  ArrowLeft,
+  Tag,
+  Calendar,
+} from 'lucide-react-native';
 
 type StoreDetails = {
   id: string;
@@ -10,13 +26,11 @@ type StoreDetails = {
   description: string;
   category: string;
   floor: string;
-  location_in_mall: string;
-  contact_number: string;
-  hours: string;
-  mall: {
-    id: string;
-    name: string;
-  };
+  local_number: string;
+  phone: string;
+  website: string;
+  image: string;
+  mall_name?: string;
 };
 
 type Promotion = {
@@ -44,21 +58,57 @@ export default function StoreDetailsScreen() {
       setLoading(true);
       const now = new Date().toISOString();
 
-      // Fetch store details with mall information
+      // Fetch store details
       const { data: storeData, error: storeError } = await supabase
         .from('stores')
-        .select(`
-          *,
-          mall:shopping_malls!stores_mall_id_fkey (
-            id,
-            name
-          )
-        `)
+        .select(
+          `
+          id,
+          name,
+          description,
+          category,
+          floor,
+          local_number,
+          phone,
+          website,
+          image,
+          mall_id
+        `
+        )
         .eq('id', id)
         .single();
 
       if (storeError) throw storeError;
-      setStore(storeData);
+
+      // Fetch mall name separately
+      let mallName = '';
+      if (storeData.mall_id) {
+        const { data: mallData } = await supabase
+          .from('shopping_malls')
+          .select('name')
+          .eq('id', storeData.mall_id)
+          .single();
+
+        if (mallData) {
+          mallName = mallData.name;
+        }
+      }
+
+      // Transform the data to match our type
+      const transformedData: StoreDetails = {
+        id: storeData.id,
+        name: storeData.name,
+        description: storeData.description || '',
+        category: storeData.category || '',
+        floor: storeData.floor || '',
+        local_number: storeData.local_number || '',
+        phone: storeData.phone || '',
+        website: storeData.website || '',
+        image: storeData.image || '',
+        mall_name: mallName,
+      };
+
+      setStore(transformedData);
 
       // Fetch active promotions for this store
       const { data: promotionsData, error: promotionsError } = await supabase
@@ -70,7 +120,6 @@ export default function StoreDetailsScreen() {
 
       if (promotionsError) throw promotionsError;
       setPromotions(promotionsData || []);
-
     } catch (err) {
       console.error('Error fetching store data:', err);
       setError('Error loading store data');
@@ -95,10 +144,10 @@ export default function StoreDetailsScreen() {
     );
   }
 
-  if (!store) {
+  if (error || !store) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.errorText}>Store not found</Text>
+        <Text style={styles.errorText}>{error || 'Store not found'}</Text>
       </View>
     );
   }
@@ -107,83 +156,102 @@ export default function StoreDetailsScreen() {
     <View style={styles.container}>
       <ScrollView>
         <View style={styles.header}>
-          <Pressable 
-            style={styles.backButton}
-            onPress={() => router.back()}>
-            <ArrowLeft color="#1a1a1a" size={24} />
+          <Pressable
+            onPress={() => router.back()}
+            style={styles.backButtonContainer}
+          >
+            <ArrowLeft size={24} color="#ffffff" />
           </Pressable>
-          
-          <Text style={styles.storeName}>{store.name}</Text>
-          <Text style={styles.mallName}>{store.mall.name}</Text>
-          
-          <Text style={styles.description}>{store.description}</Text>
 
-          <View style={styles.detailsContainer}>
-            {store.floor && (
-              <View style={styles.detailRow}>
-                <Store size={20} color="#666666" />
-                <Text style={styles.detailText}>Piso {store.floor}</Text>
-              </View>
-            )}
-            
-            {store.location_in_mall && (
-              <View style={styles.detailRow}>
-                <MapPin size={20} color="#666666" />
-                <Text style={styles.detailText}>{store.location_in_mall}</Text>
-              </View>
-            )}
-            
-            {store.contact_number && (
-              <View style={styles.detailRow}>
-                <Phone size={20} color="#666666" />
-                <Text style={styles.detailText}>{store.contact_number}</Text>
-              </View>
-            )}
-            
-            {store.hours && (
-              <View style={styles.detailRow}>
-                <Clock size={20} color="#666666" />
-                <Text style={styles.detailText}>{store.hours}</Text>
-              </View>
-            )}
+          {store.image ? (
+            <Image source={{ uri: store.image }} style={styles.storeImage} />
+          ) : (
+            <View style={styles.placeholderImage}>
+              <Store size={48} color="#ffffff" />
+            </View>
+          )}
+
+          <View style={styles.headerOverlay}>
+            <Text style={styles.storeName}>{store.name}</Text>
+            <Text style={styles.mallName}>{store.mall_name}</Text>
           </View>
         </View>
 
-        <View style={styles.promotionsSection}>
-          <Text style={styles.sectionTitle}>
-            Promociones Activas ({promotions.length})
-          </Text>
-          
-          {promotions.length === 0 ? (
-            <View style={styles.noPromotions}>
-              <Tag size={32} color="#666666" />
-              <Text style={styles.noPromotionsText}>
-                No hay promociones activas en este momento
-              </Text>
-            </View>
-          ) : (
-            promotions.map((promo) => (
-              <View key={promo.id} style={styles.promotionCard}>
-                <Image
-                  source={{
-                    uri: promo.image || 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=800&fit=crop&q=80',
-                  }}
-                  style={styles.promotionImage}
-                />
-                <View style={styles.promotionInfo}>
-                  <Text style={styles.promotionTitle}>{promo.title}</Text>
-                  <Text style={styles.promotionDescription}>
-                    {promo.description}
+        <View style={styles.content}>
+          <Text style={styles.description}>{store.description}</Text>
+
+          <View style={styles.detailsContainer}>
+            <Text style={styles.sectionTitle}>Información</Text>
+
+            <View style={styles.details}>
+              {store.category && (
+                <View style={styles.detailRow}>
+                  <Tag size={20} color="#666666" />
+                  <Text style={styles.detailText}>{store.category}</Text>
+                </View>
+              )}
+
+              {store.floor && (
+                <View style={styles.detailRow}>
+                  <MapPin size={20} color="#666666" />
+                  <Text style={styles.detailText}>
+                    {store.floor && `Floor ${store.floor}`}{' '}
+                    {store.local_number && `Local ${store.local_number}`}
                   </Text>
-                  <View style={styles.promotionFooter}>
-                    <Calendar size={16} color="#FF4B4B" />
-                    <Text style={styles.promotionDate}>
-                      Válido hasta: {formatDate(promo.end_date)}
+                </View>
+              )}
+
+              {store.phone && (
+                <View style={styles.detailRow}>
+                  <Phone size={20} color="#666666" />
+                  <Text style={styles.detailText}>{store.phone}</Text>
+                </View>
+              )}
+
+              {store.website && (
+                <View style={styles.detailRow}>
+                  <Clock size={20} color="#666666" />
+                  <Text style={styles.detailText}>{store.website}</Text>
+                </View>
+              )}
+            </View>
+          </View>
+
+          {promotions.length > 0 && (
+            <View style={styles.promotionsContainer}>
+              <Text style={styles.sectionTitle}>Promociones Activas</Text>
+
+              {promotions.map((promotion) => (
+                <View key={promotion.id} style={styles.promotionCard}>
+                  {promotion.image ? (
+                    <Image
+                      source={{ uri: promotion.image }}
+                      style={styles.promotionImage}
+                    />
+                  ) : (
+                    <View style={styles.promotionImagePlaceholder}>
+                      <Tag size={32} color="#ffffff" />
+                    </View>
+                  )}
+
+                  <View style={styles.promotionContent}>
+                    <Text style={styles.promotionTitle}>{promotion.title}</Text>
+                    <Text style={styles.promotionDescription}>
+                      {promotion.description}
                     </Text>
+
+                    <View style={styles.promotionFooter}>
+                      <View style={styles.promotionDateContainer}>
+                        <Calendar size={16} color="#666666" />
+                        <Text style={styles.promotionDate}>
+                          Válido hasta {formatDate(promotion.end_date)}
+                        </Text>
+                      </View>
+                    </View>
                   </View>
                 </View>
-              </View>
-            ))
+              ))}
+            </View>
           )}
         </View>
       </ScrollView>
@@ -207,78 +275,112 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: '#ffffff',
-    padding: 20,
-    paddingTop: 60,
+    padding: 0,
+    paddingTop: 0,
+    position: 'relative',
   },
-  backButton: {
-    marginBottom: 16,
-    style: {
-      pointerEvents: 'auto'
-    },
+  backButtonContainer: {
+    position: 'absolute',
+    top: 50,
+    left: 20,
+    zIndex: 10,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    borderRadius: 20,
+    padding: 8,
+  },
+  storeImage: {
+    width: '100%',
+    height: 250,
+  },
+  placeholderImage: {
+    width: '100%',
+    height: 250,
+    backgroundColor: '#cccccc',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    padding: 20,
   },
   storeName: {
-    fontSize: 32,
+    fontSize: 24,
     fontWeight: '700',
-    color: '#1a1a1a',
-    marginBottom: 4,
+    color: '#ffffff',
   },
   mallName: {
-    fontSize: 18,
-    color: '#666666',
-    marginBottom: 16,
+    fontSize: 16,
+    color: '#ffffff',
+    opacity: 0.8,
+  },
+  content: {
+    padding: 20,
   },
   description: {
     fontSize: 16,
-    color: '#666666',
+    color: '#333333',
     lineHeight: 24,
-    marginBottom: 24,
+    marginBottom: 20,
   },
   detailsContainer: {
-    gap: 12,
+    marginBottom: 20,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1a1a1a',
+    marginBottom: 12,
+  },
+  details: {
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   detailRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 12,
   },
   detailText: {
     fontSize: 16,
-    color: '#666666',
+    color: '#333333',
     marginLeft: 12,
   },
-  promotionsSection: {
-    padding: 20,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#1a1a1a',
-    marginBottom: 16,
-  },
-  noPromotions: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 24,
-    alignItems: 'center',
-    gap: 12,
-  },
-  noPromotionsText: {
-    fontSize: 16,
-    color: '#666666',
-    textAlign: 'center',
+  promotionsContainer: {
+    marginBottom: 20,
   },
   promotionCard: {
     backgroundColor: '#ffffff',
     borderRadius: 12,
     marginBottom: 16,
     overflow: 'hidden',
-    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.1)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   promotionImage: {
     width: '100%',
-    height: 200,
-    backgroundColor: '#f0f0f0',
+    height: 150,
   },
-  promotionInfo: {
+  promotionImagePlaceholder: {
+    width: '100%',
+    height: 150,
+    backgroundColor: '#cccccc',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  promotionContent: {
     padding: 16,
   },
   promotionTitle: {
@@ -290,20 +392,20 @@ const styles = StyleSheet.create({
   promotionDescription: {
     fontSize: 14,
     color: '#666666',
-    lineHeight: 20,
-    marginBottom: 16,
+    marginBottom: 12,
   },
   promotionFooter: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
+  },
+  promotionDateContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   promotionDate: {
-    fontSize: 14,
-    color: '#FF4B4B',
-    marginLeft: 8,
-    fontWeight: '500',
+    fontSize: 12,
+    color: '#666666',
+    marginLeft: 4,
   },
 });

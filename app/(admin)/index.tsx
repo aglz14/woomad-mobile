@@ -1,6 +1,7 @@
 import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
 import { router } from 'expo-router';
 import { Building2, Store, Tag } from 'lucide-react-native';
+import AdminTabBar from '@/components/AdminTabBar';
 
 export default function AdminScreen() {
   const menuItems = [
@@ -25,25 +26,30 @@ export default function AdminScreen() {
   ];
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.title}>Panel de Administración</Text>
-        <Text style={styles.subtitle}>Gestiona tu centro comercial</Text>
+    <View style={styles.container}>
+      <ScrollView style={styles.scrollContainer}>
+        <View style={styles.content}>
+          <Text style={styles.title}>Panel de Administración</Text>
+          <Text style={styles.subtitle}>Gestiona tu centro comercial</Text>
 
-        <View style={styles.grid}>
-          {menuItems.map((item) => (
-            <Pressable
-              key={item.title}
-              style={styles.card}
-              onPress={() => router.push(item.route)}>
-              <item.icon size={32} color="#FF4B4B" />
-              <Text style={styles.cardTitle}>{item.title}</Text>
-              <Text style={styles.cardDescription}>{item.description}</Text>
-            </Pressable>
-          ))}
+          <View style={styles.grid}>
+            {menuItems.map((item) => (
+              <Pressable
+                key={item.title}
+                style={styles.card}
+                onPress={() => router.push(item.route as any)}
+              >
+                <item.icon size={32} color="#FF4B4B" />
+                <Text style={styles.cardTitle}>{item.title}</Text>
+                <Text style={styles.cardDescription}>{item.description}</Text>
+              </Pressable>
+            ))}
+          </View>
         </View>
-      </View>
-    </ScrollView>
+      </ScrollView>
+
+      <AdminTabBar />
+    </View>
   );
 }
 
@@ -52,15 +58,18 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f8f9fa',
   },
+  scrollContainer: {
+    flex: 1,
+  },
   content: {
     padding: 20,
-    paddingBottom: 40,
+    paddingBottom: 100, // Add extra padding to account for the tab bar
   },
   title: {
     fontSize: 32,
     fontWeight: '700',
     color: '#1a1a1a',
-    marginTop: 60,
+    marginTop: 20,
   },
   subtitle: {
     fontSize: 16,

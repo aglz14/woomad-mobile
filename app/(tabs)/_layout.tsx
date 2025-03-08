@@ -9,6 +9,7 @@ import {
   Text,
   StyleSheet,
   Pressable,
+  Platform,
 } from 'react-native';
 
 // Define types for tab items
@@ -25,7 +26,7 @@ export default function TabLayout() {
 
   // Define tabs based on user role
   const tabs = useMemo((): TabItem[] => {
-    return [
+    const defaultTabs = [
       {
         name: 'index',
         title: 'Inicio',
@@ -47,6 +48,17 @@ export default function TabLayout() {
         iconName: 'person-outline',
       },
     ];
+
+    // Add Admin tab for admin users
+    if (isAdmin) {
+      defaultTabs.push({
+        name: 'admin',
+        title: 'Admin',
+        iconName: 'settings-outline',
+      });
+    }
+
+    return defaultTabs;
   }, [isAdmin]);
 
   // Handle authentication and routing
@@ -121,8 +133,8 @@ export default function TabLayout() {
           backgroundColor: '#ffffff',
           borderTopColor: '#f0f0f0',
           boxShadow: '0px -2px 4px rgba(0, 0, 0, 0.1)',
-          height: 70,
-          paddingBottom: 12,
+          height: Platform.OS === 'ios' ? 83 : 70,
+          paddingBottom: Platform.OS === 'ios' ? 25 : 12,
         },
         tabBarActiveTintColor: '#FF4B4B',
         tabBarInactiveTintColor: '#8E8E93',
@@ -143,12 +155,14 @@ export default function TabLayout() {
             tabBarIcon: ({ size, color }) => (
               <Ionicons name={tab.iconName} size={size} color={color} />
             ),
-            tabBarStyle: shouldHideTabBar(pathname) ? {
-              display: 'none',
-              pointerEvents: 'none'
-            } : {
-              pointerEvents: 'auto'
-            },
+            tabBarStyle: shouldHideTabBar(pathname)
+              ? {
+                  display: 'none',
+                  pointerEvents: 'none',
+                }
+              : {
+                  pointerEvents: 'auto',
+                },
           }}
         />
       ))}

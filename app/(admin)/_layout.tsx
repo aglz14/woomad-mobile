@@ -2,7 +2,14 @@ import { Stack } from 'expo-router';
 import { useAuth } from '@/hooks/useAuth';
 import { router } from 'expo-router';
 import { useEffect } from 'react';
-import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  ActivityIndicator,
+  StyleSheet,
+  TouchableOpacity,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function AdminLayout() {
   const { isAdmin, isLoading } = useAuth();
@@ -32,16 +39,30 @@ export default function AdminLayout() {
   }
 
   return (
-    <Stack>
+    <Stack
+      screenOptions={{
+        headerStyle: {
+          backgroundColor: '#ffffff',
+        },
+        headerTintColor: '#FF4B4B',
+        contentStyle: {
+          backgroundColor: '#f8f9fa',
+        },
+        headerRight: () => (
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.push('/(tabs)')}
+          >
+            <Ionicons name="home-outline" size={24} color="#FF4B4B" />
+          </TouchableOpacity>
+        ),
+      }}
+    >
       <Stack.Screen
         name="index"
         options={{
           title: 'Panel de Administración',
           headerShown: true,
-          headerStyle: {
-            backgroundColor: '#ffffff',
-          },
-          headerTintColor: '#FF4B4B',
         }}
       />
       <Stack.Screen
@@ -49,10 +70,26 @@ export default function AdminLayout() {
         options={{
           title: 'Administrar Plazas',
           headerShown: true,
-          headerStyle: {
-            backgroundColor: '#ffffff',
-          },
-          headerTintColor: '#FF4B4B',
+          presentation: 'modal',
+          animation: 'slide_from_bottom',
+        }}
+      />
+      <Stack.Screen
+        name="stores"
+        options={{
+          title: 'Administrar Negocios',
+          headerShown: true,
+          presentation: 'modal',
+          animation: 'slide_from_bottom',
+        }}
+      />
+      <Stack.Screen
+        name="promotions"
+        options={{
+          title: 'Administrar Promociones',
+          headerShown: true,
+          presentation: 'modal',
+          animation: 'slide_from_bottom',
         }}
       />
     </Stack>
@@ -70,5 +107,8 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#FF4B4B',
     fontWeight: '500',
+  },
+  backButton: {
+    marginRight: 15,
   },
 });
