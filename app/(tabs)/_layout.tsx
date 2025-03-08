@@ -146,6 +146,7 @@ export default function TabLayout() {
         },
       }}
     >
+      {/* Only render tabs that are in the tabs array */}
       {tabs.map((tab) => (
         <Tabs.Screen
           key={tab.name}
@@ -163,8 +164,6 @@ export default function TabLayout() {
               : {
                   pointerEvents: 'auto',
                 },
-            // Hide the admin tab for non-admin users
-            href: tab.name === 'admin' && !isAdmin ? null : undefined,
           }}
         />
       ))}
