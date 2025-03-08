@@ -1,8 +1,15 @@
 import { Tabs, usePathname } from 'expo-router';
-import { Chrome as Home, Tag, MapPin, User, Settings } from 'lucide-react-native';
+import {
+  Chrome as Home,
+  Tag,
+  MapPin,
+  User,
+  Settings,
+} from 'lucide-react-native';
 import { useAuth } from '@/hooks/useAuth';
 import { useEffect, useMemo } from 'react';
 import { router } from 'expo-router';
+import { View, ActivityIndicator } from 'react-native';
 
 export default function TabLayout() {
   const { isAdmin, isLoading, session } = useAuth();
@@ -11,32 +18,32 @@ export default function TabLayout() {
   const tabs = useMemo(() => {
     const commonTabs = [
       {
-        name: "index",
-        title: "Inicio",
-        icon: Home
+        name: 'index',
+        title: 'Inicio',
+        icon: Home,
       },
       {
-        name: "promotions",
-        title: "Promociones",
-        icon: Tag
+        name: 'promotions',
+        title: 'Promociones',
+        icon: Tag,
       },
       {
-        name: "malls",
-        title: "Centros",
-        icon: MapPin
+        name: 'malls',
+        title: 'Centros',
+        icon: MapPin,
       },
       {
-        name: "profile",
-        title: "Perfil",
-        icon: User
-      }
+        name: 'profile',
+        title: 'Perfil',
+        icon: User,
+      },
     ];
 
     if (isAdmin) {
       commonTabs.push({
-        name: "admin",
-        title: "Panel",
-        icon: Settings
+        name: 'admin',
+        title: 'Panel',
+        icon: Settings,
       });
     }
 
@@ -50,7 +57,11 @@ export default function TabLayout() {
   }, [isLoading, session]);
 
   if (isLoading) {
-    return null;
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#FF4B4B" />
+      </View>
+    );
   }
 
   return (
@@ -79,7 +90,9 @@ export default function TabLayout() {
               const Icon = tab.icon;
               return <Icon size={size} color={color} />;
             },
-            tabBarStyle: pathname.startsWith('/malls/') ? { display: 'none' } : undefined,
+            tabBarStyle: pathname.startsWith('/malls/')
+              ? { display: 'none' }
+              : undefined,
           }}
         />
       ))}
