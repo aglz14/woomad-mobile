@@ -163,6 +163,8 @@ export default function TabLayout() {
               : {
                   pointerEvents: 'auto',
                 },
+            // Hide the admin tab for non-admin users
+            href: tab.name === 'admin' && !isAdmin ? null : undefined,
           }}
         />
       ))}
