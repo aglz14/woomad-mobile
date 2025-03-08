@@ -1,10 +1,25 @@
 {
-  "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
     "paths": {
-      "@/*": ["./*"]
-    }
+      "@/*": [
+        "./*"
+      ]
+    },
+    "lib": [
+      "ES2015",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "jsx": "react-native",
+    "target": "ES2015",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "noEmit": true,
+    "isolatedModules": true
   },
   "include": [
     "**/*.ts",
@@ -12,5 +27,6 @@
     ".expo/types/**/*.ts",
     "expo-env.d.ts",
     "types/env.d.ts"
-  ]
+  ],
+  "extends": "expo/tsconfig.base"
 }

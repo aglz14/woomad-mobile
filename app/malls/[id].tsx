@@ -1,11 +1,29 @@
-import { View, Text, StyleSheet, ScrollView, Image, Pressable, ActivityIndicator, useWindowDimensions } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Image,
+  Pressable,
+  ActivityIndicator,
+  useWindowDimensions,
+} from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { supabase } from '@/lib/supabase';
-import { useEffect, useState, useMemo } from 'react';
-import { Store, MapPin, Filter, ArrowLeft, Phone, Navigation2, Clock, Info } from 'lucide-react-native';
+import { useEffect, useState, useMemo, useCallback } from 'react';
+import {
+  Store as StoreIcon,
+  MapPin,
+  Filter,
+  ArrowLeft,
+  Phone,
+  Navigation2,
+  Clock,
+  Info,
+} from 'lucide-react-native';
 import * as Linking from 'expo-linking';
 
-type Store = {
+type StoreData = {
   id: string;
   name: string;
   description: string;
@@ -15,9 +33,10 @@ type Store = {
   contact_number: string;
   category: string;
   hours: string;
+  mall_id: string;
 };
 
-type Mall = {
+type MallData = {
   id: string;
   name: string;
   address: string;
@@ -30,35 +49,57 @@ type Mall = {
 export default function MallDetailsScreen() {
   const { id } = useLocalSearchParams();
   const { width } = useWindowDimensions();
-  const [mall, setMall] = useState<Mall | null>(null);
-  const [stores, setStores] = useState<Store[]>([]);
-  const [filteredStores, setFilteredStores] = useState<Store[]>([]);
+  const [mall, setMall] = useState<MallData | null>(null);
+  const [stores, setStores] = useState<StoreData[]>([]);
+  const [filteredStores, setFilteredStores] = useState<StoreData[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const categories = useMemo(() => {
     if (!stores.length) return [];
-    return Array.from(new Set(stores.map(store => store.category))).sort();
+    return Array.from(
+      new Set(stores.map((store: StoreData) => store.category))
+    ).sort();
   }, [stores]);
 
   useEffect(() => {
-    fetchMallData();
+    if (id) {
+      fetchMallData();
+    }
   }, [id]);
+
+  const filterStores = useCallback(
+    (category: string | null) => {
+      if (!category) {
+        setFilteredStores(stores);
+      } else {
+        setFilteredStores(
+          stores.filter((store: StoreData) => store.category === category)
+        );
+      }
+      setSelectedCategory(category);
+    },
+    [stores]
+  );
 
   useEffect(() => {
     filterStores(selectedCategory);
-  }, [stores, selectedCategory]);
+  }, [stores, selectedCategory, filterStores]);
 
   async function fetchMallData() {
     try {
       setLoading(true);
       setError(null);
 
+      // Ensure id is a string
+      const mallId =
+        typeof id === 'string' ? id : Array.isArray(id) ? id[0] : String(id);
+
       const { data: mallData, error: mallError } = await supabase
         .from('shopping_malls')
         .select('*')
-        .eq('id', id)
+        .eq('id', mallId)
         .single();
 
       if (mallError) throw mallError;
@@ -67,13 +108,12 @@ export default function MallDetailsScreen() {
       const { data: storesData, error: storesError } = await supabase
         .from('stores')
         .select('*')
-        .eq('mall_id', id)
+        .eq('mall_id', mallId)
         .order('name');
 
       if (storesError) throw storesError;
       setStores(storesData || []);
       setFilteredStores(storesData || []);
-
     } catch (err) {
       console.error('Error fetching mall data:', err);
       setError('Error loading mall information');
@@ -82,20 +122,11 @@ export default function MallDetailsScreen() {
     }
   }
 
-  function filterStores(category: string | null) {
-    if (!category) {
-      setFilteredStores(stores);
-    } else {
-      setFilteredStores(stores.filter(store => store.category === category));
-    }
-    setSelectedCategory(category);
-  }
-
-  const openMaps = () => {
+  const openMaps = useCallback(() => {
     if (!mall) return;
     const url = `https://www.google.com/maps/search/?api=1&query=${mall.latitude},${mall.longitude}`;
     Linking.openURL(url);
-  };
+  }, [mall]);
 
   if (loading) {
     return (
@@ -121,13 +152,13 @@ export default function MallDetailsScreen() {
       <View>
         <Image
           source={{
-            uri: mall.image || 'https://images.unsplash.com/photo-1519567241348-f1f95aeea6e6?w=800',
+            uri:
+              mall.image ||
+              'https://images.unsplash.com/photo-1519567241348-f1f95aeea6e6?w=800',
           }}
           style={[styles.headerImage, { width }]}
         />
-        <Pressable 
-          style={styles.backButton} 
-          onPress={() => router.back()}>
+        <Pressable style={styles.backButton} onPress={() => router.back()}>
           <ArrowLeft size={24} color="#ffffff" />
         </Pressable>
       </View>
@@ -163,35 +194,46 @@ export default function MallDetailsScreen() {
             horizontal
             showsHorizontalScrollIndicator={false}
             style={styles.categoriesScroll}
-            contentContainerStyle={styles.categoriesContent}>
+            contentContainerStyle={styles.categoriesContent}
+          >
             <Pressable
               style={[
                 styles.categoryChip,
                 !selectedCategory && styles.categoryChipSelected,
               ]}
-              onPress={() => filterStores(null)}>
+              onPress={() => filterStores(null)}
+            >
               <Text
                 style={[
                   styles.categoryText,
                   !selectedCategory && styles.categoryTextSelected,
-                ]}>
+                ]}
+              >
                 All ({stores.length})
               </Text>
             </Pressable>
-            {categories.map((category) => (
+            {categories.map((category: string) => (
               <Pressable
                 key={category}
                 style={[
                   styles.categoryChip,
                   selectedCategory === category && styles.categoryChipSelected,
                 ]}
-                onPress={() => filterStores(category)}>
+                onPress={() => filterStores(category)}
+              >
                 <Text
                   style={[
                     styles.categoryText,
-                    selectedCategory === category && styles.categoryTextSelected,
-                  ]}>
-                  {category} ({stores.filter(s => s.category === category).length})
+                    selectedCategory === category &&
+                      styles.categoryTextSelected,
+                  ]}
+                >
+                  {category} (
+                  {
+                    stores.filter((s: StoreData) => s.category === category)
+                      .length
+                  }
+                  )
                 </Text>
               </Pressable>
             ))}
@@ -200,23 +242,25 @@ export default function MallDetailsScreen() {
 
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Store size={20} color="#1a1a1a" />
+            <StoreIcon size={20} color="#1a1a1a" />
             <Text style={styles.sectionTitle}>
               Stores ({filteredStores.length})
             </Text>
           </View>
-          {filteredStores.map((store) => (
+          {filteredStores.map((store: StoreData) => (
             <View key={store.id} style={styles.storeCard}>
               <Image
                 source={{
-                  uri: store.logo_url || 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400',
+                  uri:
+                    store.logo_url ||
+                    'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400',
                 }}
                 style={styles.storeLogo}
               />
               <View style={styles.storeInfo}>
                 <Text style={styles.storeName}>{store.name}</Text>
                 <Text style={styles.storeCategory}>{store.category}</Text>
-                
+
                 <View style={styles.storeDetails}>
                   {store.floor && (
                     <View style={styles.detailItem}>
@@ -226,18 +270,21 @@ export default function MallDetailsScreen() {
                       </Text>
                     </View>
                   )}
-                  
+
                   {store.hours && (
                     <View style={styles.detailItem}>
                       <Clock size={14} color="#666666" />
                       <Text style={styles.detailText}>{store.hours}</Text>
                     </View>
                   )}
-                  
+
                   {store.contact_number && (
                     <Pressable
                       style={styles.detailItem}
-                      onPress={() => Linking.openURL(`tel:${store.contact_number}`)}>
+                      onPress={() =>
+                        Linking.openURL(`tel:${store.contact_number}`)
+                      }
+                    >
                       <Phone size={14} color="#666666" />
                       <Text style={[styles.detailText, styles.phoneNumber]}>
                         {store.contact_number}
