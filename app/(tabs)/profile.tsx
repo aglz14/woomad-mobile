@@ -100,7 +100,10 @@ export default function ProfileScreen() {
             <Text style={styles.menuItemText}>Términos y Condiciones</Text>
             <ChevronRight size={20} color="#666666" />
           </Pressable>
-          <Pressable style={styles.menuItem}>
+          <Pressable
+            style={styles.menuItem}
+            onPress={() => router.push('/privacy_policy')}
+          >
             <Text style={styles.menuItemText}>Política de Privacidad</Text>
             <ChevronRight size={20} color="#666666" />
           </Pressable>
