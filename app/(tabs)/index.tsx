@@ -97,8 +97,8 @@ export default function HomeScreen() {
           distance: calculateDistance(
             userLocation.coords.latitude,
             userLocation.coords.longitude,
-            promo.store.mall.latitude,
-            promo.store.mall.longitude
+            promo.store[0].mall[0].latitude,
+            promo.store[0].mall[0].longitude
           )
         }))
         .sort((a, b) => (a.distance || 0) - (b.distance || 0))
@@ -137,7 +137,23 @@ export default function HomeScreen() {
         .sort((a, b) => a.distance_value - b.distance_value)
         .slice(0, 5); // Get only first 5 malls
 
-      setPromotions(promotionsWithDistance);
+      // Convert promotion data to match Promotion type
+      const typedPromotions = promotionsWithDistance.map(promo => ({
+        id: promo.id,
+        title: promo.title,
+        image: promo.image,
+        distance: promo.distance,
+        store: {
+          name: promo.store[0].name,
+          mall: {
+            name: promo.store[0].mall[0].name,
+            latitude: promo.store[0].mall[0].latitude,
+            longitude: promo.store[0].mall[0].longitude
+          }
+        }
+      }));
+
+      setPromotions(typedPromotions);
       setMalls(nearestMalls);
       setError(null);
     } catch (err) {

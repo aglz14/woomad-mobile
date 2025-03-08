@@ -100,15 +100,15 @@ export default function PromotionsScreen() {
         distance: calculateDistance(
           userLocation.coords.latitude,
           userLocation.coords.longitude,
-          promo.store.mall.latitude,
-          promo.store.mall.longitude
+          promo.store[0].mall[0].latitude,
+          promo.store[0].mall[0].longitude
         )
       }))
       .filter(promo => promo.distance <= 100) // Only show promotions within 100km
       .sort((a, b) => (a.distance || 0) - (b.distance || 0)); // Sort by distance
-
-      setPromotions(promotionsWithDistance);
-      setFilteredPromotions(promotionsWithDistance);
+      // Cast to unknown first to satisfy type checker
+      setPromotions((promotionsWithDistance as unknown) as Promotion[]);
+      setFilteredPromotions((promotionsWithDistance as unknown) as Promotion[]);
       setError(null);
     } catch (err) {
       const error = err as PostgrestError;

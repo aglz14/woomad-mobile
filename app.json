@@ -7,6 +7,8 @@
     "icon": "./assets/icon.png",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
+    "sdkVersion": "52.0.0",
+    "platforms": ["ios", "android", "web"],
     "ios": {
       "supportsTablet": true
     },
@@ -18,8 +20,6 @@
     "experiments": {
       "typedRoutes": true
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ]
+    "assetBundlePatterns": ["**/*"]
   }
 }
