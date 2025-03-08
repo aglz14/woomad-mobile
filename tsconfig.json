@@ -2,15 +2,9 @@
   "compilerOptions": {
     "strict": true,
     "paths": {
-      "@/*": [
-        "./*"
-      ]
+      "@/*": ["./*"]
     },
-    "lib": [
-      "ES2015",
-      "DOM",
-      "DOM.Iterable"
-    ],
+    "lib": ["ES2015", "DOM", "DOM.Iterable"],
     "jsx": "react-native",
     "target": "ES2015",
     "moduleResolution": "node",
@@ -26,7 +20,8 @@
     "**/*.tsx",
     ".expo/types/**/*.ts",
     "expo-env.d.ts",
-    "types/env.d.ts"
+    "types/env.d.ts",
+    "types/lucide-react-native.d.ts"
   ],
   "extends": "expo/tsconfig.base"
 }
