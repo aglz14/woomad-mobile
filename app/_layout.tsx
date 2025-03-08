@@ -26,26 +26,33 @@ export default function RootLayout() {
           <Stack.Screen name="auth" />
         )}
         <Stack.Screen name="(admin)" options={{ headerShown: false }} />
-        <Stack.Screen 
-          name="notifications" 
-          options={{ 
+        <Stack.Screen
+          name="notifications"
+          options={{
             headerShown: false,
-            presentation: 'modal'
-          }} 
+            presentation: 'modal',
+          }}
         />
-        <Stack.Screen 
-          name="center_details/[id]" 
-          options={{ 
+        <Stack.Screen
+          name="center_details/[id]"
+          options={{
             headerShown: false,
-            presentation: 'modal'
-          }} 
+            presentation: 'modal',
+          }}
         />
-        <Stack.Screen 
-          name="store_details/[id]" 
-          options={{ 
+        <Stack.Screen
+          name="store_details/[id]"
+          options={{
             headerShown: false,
-            presentation: 'modal'
-          }} 
+            presentation: 'modal',
+          }}
+        />
+        <Stack.Screen
+          name="terms_conditions"
+          options={{
+            headerShown: false,
+            presentation: 'modal',
+          }}
         />
         <Stack.Screen name="+not-found" />
       </Stack>

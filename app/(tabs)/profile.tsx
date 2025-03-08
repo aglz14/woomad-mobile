@@ -93,7 +93,10 @@ export default function ProfileScreen() {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Información Legal</Text>
-          <Pressable style={styles.menuItem}>
+          <Pressable
+            style={styles.menuItem}
+            onPress={() => router.push('/terms_conditions')}
+          >
             <Text style={styles.menuItemText}>Términos y Condiciones</Text>
             <ChevronRight size={20} color="#666666" />
           </Pressable>
