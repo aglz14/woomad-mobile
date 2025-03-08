@@ -8,19 +8,19 @@ export default function AdminScreen() {
       title: 'Plazas',
       description: 'Agregar y administrar plazas comerciales',
       icon: Building2,
-      route: '/admin/malls',
+      route: '/(admin)/malls',
     },
     {
       title: 'Negocios',
       description: 'Administrar listado de negocios',
       icon: Store,
-      route: '/admin/stores',
+      route: '/(admin)/stores',
     },
     {
       title: 'Promociones',
       description: 'Crear y editar promociones',
       icon: Tag,
-      route: '/admin/promotions',
+      route: '/(admin)/promotions',
     },
   ];
 

@@ -210,7 +210,7 @@ export default function HomeScreen() {
           <Pressable
             key={mall.id}
             style={styles.mallCard}
-            onPress={() => router.push(`/malls/${mall.id}`)}>
+            onPress={() => router.push(`/center_details/${mall.id}`)}>
             <Image source={{ uri: mall.image }} style={styles.mallImage} />
             <View style={styles.mallInfo}>
               <Text style={styles.mallName}>{mall.name}</Text>

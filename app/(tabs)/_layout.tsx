@@ -120,15 +120,16 @@ export default function TabLayout() {
           backgroundColor: '#ffffff',
           borderTopColor: '#f0f0f0',
           boxShadow: '0px -2px 4px rgba(0, 0, 0, 0.1)',
-          height: 60,
-          paddingBottom: 8,
+          height: 70,
+          paddingBottom: 12,
         },
         tabBarActiveTintColor: '#FF4B4B',
         tabBarInactiveTintColor: '#8E8E93',
         tabBarHideOnKeyboard: true,
         tabBarLabelStyle: {
           fontSize: 12,
-          fontWeight: '500',
+          fontWeight: '600',
+          marginTop: 4,
         },
       }}
     >

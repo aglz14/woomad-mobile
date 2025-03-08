@@ -166,7 +166,7 @@ export default function MallsScreen() {
       <ScrollView style={styles.content}>
         {filteredMalls.map((mall) => (
           <Pressable key={mall.id} style={styles.mallCard}
-            onPress={() => router.push(`/malls/${mall.id}`)}
+            onPress={() => router.push(`/center_details/${mall.id}`)}
           >
             <Image
               source={{

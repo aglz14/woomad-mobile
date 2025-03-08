@@ -10,15 +10,16 @@ export function useAuth() {
   const [role, setRole] = useState<UserRole>('user');
   const [session, setSession] = useState<Session | null>(null);
 
-  // Reset auth state
   const resetAuthState = () => {
     setSession(null);
     setRole('user');
     setIsAdmin(false);
+    setIsLoading(false);
   };
 
   async function signOut() {
     try {
+      setIsLoading(true);
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       
@@ -26,10 +27,17 @@ export function useAuth() {
     } catch (error) {
       console.error('Error signing out:', error);
       throw error;
+    } finally {
+      setIsLoading(false);
     }
   }
 
   const handleAuthStateChange = async (event: string, session: Session | null) => {
+    if (event === 'SIGNED_OUT') {
+      resetAuthState();
+      return;
+    }
+
     setSession(session);
     
     if (session?.user) {
@@ -42,6 +50,7 @@ export function useAuth() {
 
         if (profileError) {
           console.error('Error fetching profile:', profileError);
+          resetAuthState();
           return;
         }
 
@@ -50,6 +59,7 @@ export function useAuth() {
           setRole(userRole);
           setIsAdmin(userRole === 'admin');
         }
+        setIsLoading(false);
       } catch (error) {
         console.error('Error in auth state change:', error);
         resetAuthState();
@@ -62,18 +72,24 @@ export function useAuth() {
   useEffect(() => {
     checkUser();
     
-    const { data: authListener } = supabase.auth.onAuthStateChange(handleAuthStateChange);
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(handleAuthStateChange);
     
     return () => {
-      authListener?.subscription.unsubscribe();
+      subscription.unsubscribe();
     };
   }, []);
 
   async function checkUser() {
     try {
-      const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
+      setIsLoading(true);
+      const { 
+        data: { session: currentSession }, 
+        error: sessionError 
+      } = await supabase.auth.getSession();
       
-      if (sessionError && sessionError.message !== 'Invalid Refresh Token: Refresh Token Not Found') {
+      if (sessionError) {
         console.error('Session error:', sessionError);
         resetAuthState();
         return;
@@ -84,7 +100,7 @@ export function useAuth() {
       } else {
         resetAuthState();
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error checking user:', error);
       resetAuthState();
     } finally {
