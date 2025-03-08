@@ -1,19 +1,21 @@
 import { Tabs, usePathname } from 'expo-router';
-import { Chrome, Tag, MapPin, User, Settings } from 'lucide-react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/hooks/useAuth';
 import { useEffect, useMemo, useState } from 'react';
 import { router } from 'expo-router';
-import { View, ActivityIndicator, Text, StyleSheet, Pressable } from 'react-native';
+import {
+  View,
+  ActivityIndicator,
+  Text,
+  StyleSheet,
+  Pressable,
+} from 'react-native';
 
 // Define types for tab items
 type TabItem = {
   name: string;
   title: string;
-  icon: React.ComponentType<{
-    size?: number;
-    color?: string;
-    strokeWidth?: number;
-  }>;
+  iconName: any; // Using any to bypass type checking for icon names
 };
 
 export default function TabLayout() {
@@ -27,22 +29,22 @@ export default function TabLayout() {
       {
         name: 'index',
         title: 'Inicio',
-        icon: Chrome,
+        iconName: 'home-outline',
       },
       {
         name: 'promotions',
         title: 'Promociones',
-        icon: Tag,
+        iconName: 'pricetag-outline',
       },
       {
         name: 'malls',
         title: 'Centros',
-        icon: MapPin,
+        iconName: 'location-outline',
       },
       {
         name: 'profile',
         title: 'Perfil',
-        icon: User,
+        iconName: 'person-outline',
       },
     ];
 
@@ -51,7 +53,7 @@ export default function TabLayout() {
       commonTabs.push({
         name: 'admin',
         title: 'Panel',
-        icon: Settings,
+        iconName: 'settings-outline',
       });
     }
 
@@ -67,10 +69,12 @@ export default function TabLayout() {
         }
       } catch (err) {
         console.error('Authentication error:', err);
-        setError('Error de autenticación. Por favor, inicie sesión nuevamente.');
+        setError(
+          'Error de autenticación. Por favor, inicie sesión nuevamente.'
+        );
       }
     };
-    
+
     checkAuth();
   }, [isLoading, session]);
 
@@ -82,7 +86,9 @@ export default function TabLayout() {
       router.replace('/auth/login');
     } catch (err) {
       console.error('Error during retry:', err);
-      setError('No se pudo reiniciar la sesión. Por favor, cierre la aplicación e intente nuevamente.');
+      setError(
+        'No se pudo reiniciar la sesión. Por favor, cierre la aplicación e intente nuevamente.'
+      );
     }
   };
 
@@ -111,8 +117,8 @@ export default function TabLayout() {
   // Determine if tab bar should be hidden
   const shouldHideTabBar = (path: string): boolean => {
     return (
-      path.startsWith('/malls/') || 
-      path.startsWith('/promotions/') || 
+      path.startsWith('/malls/') ||
+      path.startsWith('/promotions/') ||
       path.includes('/details/')
     );
   };
@@ -120,7 +126,6 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        unmountOnBlur: true,
         headerShown: false,
         tabBarStyle: {
           backgroundColor: '#ffffff',
@@ -147,10 +152,9 @@ export default function TabLayout() {
           name={tab.name}
           options={{
             title: tab.title,
-            tabBarIcon: ({ size, color }) => {
-              const Icon = tab.icon;
-              return <Icon size={size} color={color} />;
-            },
+            tabBarIcon: ({ size, color }) => (
+              <Ionicons name={tab.iconName} size={size} color={color} />
+            ),
             tabBarStyle: shouldHideTabBar(pathname)
               ? { display: 'none' }
               : undefined,
@@ -191,4 +195,4 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
   },
-}); 
+});
