@@ -35,7 +35,8 @@ export default function AdminScreen() {
             <Pressable
               key={item.title}
               style={styles.card}
-              onPress={() => router.push(item.route)}>
+              onPress={() => router.navigate(item.route as any)}
+            >
               <item.icon size={32} color="#FF4B4B" />
               <Text style={styles.cardTitle}>{item.title}</Text>
               <Text style={styles.cardDescription}>{item.description}</Text>
