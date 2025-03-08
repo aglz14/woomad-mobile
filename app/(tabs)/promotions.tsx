@@ -1,10 +1,30 @@
-import { View, Text, StyleSheet, ScrollView, Image, Pressable, ActivityIndicator, TextInput } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Image,
+  Pressable,
+  ActivityIndicator,
+  TextInput,
+} from 'react-native';
 import { Search, Tag, Store, MapPin, Calendar } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
 import { useEffect, useState } from 'react';
 import { PostgrestError } from '@supabase/supabase-js';
 import * as Location from 'expo-location';
 
+// Define the raw data structure from Supabase
+type RawPromotion = {
+  id: string;
+  title: string;
+  description: string;
+  image: string;
+  end_date: string;
+  store: any; // Using any for the raw data from Supabase
+};
+
+// Define the processed promotion structure
 type Promotion = {
   id: string;
   title: string;
@@ -13,7 +33,7 @@ type Promotion = {
   end_date: string;
   store: {
     name: string;
-    mall: {
+    mall?: {
       name: string;
       latitude: number;
       longitude: number;
@@ -25,7 +45,9 @@ type Promotion = {
 export default function PromotionsScreen() {
   const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [filteredPromotions, setFilteredPromotions] = useState<Promotion[]>([]);
-  const [location, setLocation] = useState<Location.LocationObject | null>(null);
+  const [location, setLocation] = useState<Location.LocationObject | null>(
+    null
+  );
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -36,6 +58,8 @@ export default function PromotionsScreen() {
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
           setError('Permission to access location was denied');
+          // Still fetch promotions even without location
+          fetchPromotions(null);
           return;
         }
 
@@ -45,37 +69,44 @@ export default function PromotionsScreen() {
       } catch (err) {
         console.error('Error getting location:', err);
         setError('Error accessing location services');
+        // Still fetch promotions even without location
+        fetchPromotions(null);
       }
     })();
   }, []);
 
   // Calculate distance between two points using Haversine formula
-  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+  const calculateDistance = (
+    lat1: number,
+    lon1: number,
+    lat2: number,
+    lon2: number
+  ): number => {
+    if (!lat1 || !lon1 || !lat2 || !lon2) return Infinity;
+
     const R = 6371; // Earth's radius in kilometers
     const dLat = (lat2 - lat1) * (Math.PI / 180);
     const dLon = (lon2 - lon1) * (Math.PI / 180);
-    const a = 
-      Math.sin(dLat/2) * Math.sin(dLat/2) +
-      Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * 
-      Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * (Math.PI / 180)) *
+        Math.cos(lat2 * (Math.PI / 180)) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
   };
 
   async function fetchPromotions(userLocation: Location.LocationObject | null) {
     try {
       setLoading(true);
-      
-      if (!userLocation) {
-        setError('Location not available');
-        return;
-      }
-      
+
       const now = new Date().toISOString();
 
       const { data, error: fetchError } = await supabase
         .from('promotions')
-        .select(`
+        .select(
+          `
           id,
           title,
           description,
@@ -89,26 +120,65 @@ export default function PromotionsScreen() {
               longitude
             )
           )
-        `)
+        `
+        )
         .gt('end_date', now);
 
       if (fetchError) throw fetchError;
 
-      // Filter and sort promotions by distance
-      const promotionsWithDistance = (data || []).map(promo => ({
-        ...promo,
-        distance: calculateDistance(
-          userLocation.coords.latitude,
-          userLocation.coords.longitude,
-          promo.store[0].mall[0].latitude,
-          promo.store[0].mall[0].longitude
-        )
-      }))
-      .filter(promo => promo.distance <= 100) // Only show promotions within 100km
-      .sort((a, b) => (a.distance || 0) - (b.distance || 0)); // Sort by distance
-      // Cast to unknown first to satisfy type checker
-      setPromotions((promotionsWithDistance as unknown) as Promotion[]);
-      setFilteredPromotions((promotionsWithDistance as unknown) as Promotion[]);
+      // Process promotions with safe access to nested properties
+      const processedPromotions: Promotion[] = (data || []).map(
+        (promo: RawPromotion) => {
+          // Safely access nested properties
+          const storeData = promo.store || {};
+          const storeObj = Array.isArray(storeData) ? storeData[0] : storeData;
+          const mallData = storeObj?.mall || {};
+          const mallObj = Array.isArray(mallData) ? mallData[0] : mallData;
+
+          // Calculate distance if location is available
+          let distance = undefined;
+          if (userLocation && mallObj?.latitude && mallObj?.longitude) {
+            distance = calculateDistance(
+              userLocation.coords.latitude,
+              userLocation.coords.longitude,
+              mallObj.latitude,
+              mallObj.longitude
+            );
+          }
+
+          // Create a properly structured promotion object
+          return {
+            id: promo.id,
+            title: promo.title,
+            description: promo.description,
+            image: promo.image,
+            end_date: promo.end_date,
+            store: {
+              name: storeObj?.name || '',
+              mall: mallObj
+                ? {
+                    name: mallObj.name || '',
+                    latitude: mallObj.latitude || 0,
+                    longitude: mallObj.longitude || 0,
+                  }
+                : undefined,
+            },
+            distance,
+          };
+        }
+      );
+
+      // Filter by distance if location is available
+      const filteredByDistance = userLocation
+        ? processedPromotions
+            .filter(
+              (promo) => promo.distance !== undefined && promo.distance <= 100
+            )
+            .sort((a, b) => (a.distance || Infinity) - (b.distance || Infinity))
+        : processedPromotions;
+
+      setPromotions(filteredByDistance);
+      setFilteredPromotions(filteredByDistance);
       setError(null);
     } catch (err) {
       const error = err as PostgrestError;
@@ -128,8 +198,11 @@ export default function PromotionsScreen() {
 
     const searchTerms = query.toLowerCase().trim().split(' ');
     const filtered = promotions.filter((promo) => {
-      const searchString = `${promo.title} ${promo.description} ${promo.store.name} ${promo.store.mall.name}`.toLowerCase();
-      return searchTerms.every(term => searchString.includes(term));
+      const mallName = promo.store?.mall?.name || '';
+      const storeName = promo.store?.name || '';
+      const searchString =
+        `${promo.title} ${promo.description} ${storeName} ${mallName}`.toLowerCase();
+      return searchTerms.every((term) => searchString.includes(term));
     });
     setFilteredPromotions(filtered);
   };
@@ -179,7 +252,9 @@ export default function PromotionsScreen() {
           <Pressable key={promo.id} style={styles.promotionCard}>
             <Image
               source={{
-                uri: promo.image || 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=800&fit=crop&q=80',
+                uri:
+                  promo.image ||
+                  'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=800&fit=crop&q=80',
               }}
               style={styles.promotionImage}
             />
@@ -188,9 +263,9 @@ export default function PromotionsScreen() {
                 <Tag size={16} color="#FF4B4B" />
                 <Text style={styles.promotionTitle}>{promo.title}</Text>
               </View>
-              
+
               <Text style={styles.description}>{promo.description}</Text>
-              
+
               <View style={styles.storeInfo}>
                 <View style={styles.infoRow}>
                   <Store size={16} color="#666666" />
@@ -198,14 +273,15 @@ export default function PromotionsScreen() {
                 </View>
                 <View style={styles.infoRow}>
                   <MapPin size={16} color="#666666" />
-                  <Text style={styles.mallName}>{promo.store.mall.name}</Text>
+                  <Text style={styles.mallName}>{promo.store.mall?.name}</Text>
                 </View>
               </View>
-              
+
               <View style={styles.validityContainer}>
                 <Calendar size={16} color="#FF4B4B" />
                 <Text style={styles.validUntil}>
-                  Válido hasta: {formatDate(promo.end_date)} • {promo.distance?.toFixed(1)}km
+                  Válido hasta: {formatDate(promo.end_date)} •{' '}
+                  {promo.distance?.toFixed(1)}km
                 </Text>
               </View>
             </View>
@@ -241,13 +317,13 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 16,
     color: '#666666',
-    marginTop: 4
+    marginTop: 4,
   },
   locationInfo: {
     fontSize: 14,
     color: '#FF4B4B',
     marginTop: 8,
-    fontStyle: 'italic'
+    fontStyle: 'italic',
   },
   searchContainer: {
     flexDirection: 'row',
