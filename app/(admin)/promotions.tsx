@@ -91,7 +91,7 @@ export default function ManagePromotionsScreen() {
       setPromotions(data || []);
     } catch (err) {
       console.error('Error fetching promotions:', err);
-      setError('Error loading promotions. Please try again.');
+      setError('Error al cargar promociones. Por favor, intente de nuevo.');
     } finally {
       setLoading(false);
     }
@@ -149,7 +149,7 @@ export default function ManagePromotionsScreen() {
       await fetchPromotions();
     } catch (err) {
       setError(
-        editingId ? 'Error updating promotion' : 'Error creating promotion'
+        editingId ? 'Error al actualizar promoción' : 'Error al crear promoción'
       );
       console.error('Error saving promotion:', err);
     } finally {
@@ -178,7 +178,7 @@ export default function ManagePromotionsScreen() {
       await fetchPromotions();
     } catch (err) {
       console.error('Error deleting promotion:', err);
-      setError('Error deleting promotion. Please try again.');
+      setError('Error al eliminar promoción. Por favor, intente de nuevo.');
     } finally {
       setLoading(false);
     }
@@ -187,7 +187,11 @@ export default function ManagePromotionsScreen() {
   const formatDate = (dateString: string) => {
     if (!dateString) return '';
     const date = new Date(dateString);
-    return date.toLocaleDateString();
+    return date.toLocaleDateString('es-ES', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
   };
 
   if (loading && promotions.length === 0) {
@@ -213,18 +217,18 @@ export default function ManagePromotionsScreen() {
 
         <View style={styles.form}>
           <Text style={styles.formTitle}>
-            {editingId ? 'Edit Promotion' : 'Add New Promotion'}
+            {editingId ? 'Editar Promoción' : 'Agregar Nueva Promoción'}
           </Text>
 
           <Controller
             control={control}
             name="title"
-            rules={{ required: 'Title is required' }}
+            rules={{ required: 'El título es obligatorio' }}
             render={({ field: { onChange, value } }) => (
               <View style={styles.inputContainer}>
                 <TextInput
                   style={[styles.input, errors.title && styles.inputError]}
-                  placeholder="Promotion Title"
+                  placeholder="Título de la Promoción"
                   value={value}
                   onChangeText={onChange}
                 />
@@ -244,7 +248,7 @@ export default function ManagePromotionsScreen() {
               <View style={styles.inputContainer}>
                 <TextInput
                   style={styles.input}
-                  placeholder="Description"
+                  placeholder="Descripción"
                   value={value}
                   onChangeText={onChange}
                   multiline
@@ -256,7 +260,7 @@ export default function ManagePromotionsScreen() {
           <Controller
             control={control}
             name="store_id"
-            rules={{ required: 'Store is required' }}
+            rules={{ required: 'El negocio es obligatorio' }}
             render={({ field: { onChange, value } }) => (
               <View style={styles.inputContainer}>
                 <View
@@ -281,7 +285,7 @@ export default function ManagePromotionsScreen() {
                             ]}
                           >
                             {store.name} (
-                            {store.shopping_malls?.name || 'No mall'})
+                            {store.shopping_malls?.name || 'Sin plaza'})
                           </Text>
                         </Pressable>
                       ))}
@@ -305,7 +309,7 @@ export default function ManagePromotionsScreen() {
                 <View style={[styles.inputContainer, styles.halfInput]}>
                   <TextInput
                     style={styles.input}
-                    placeholder="Start Date (YYYY-MM-DD)"
+                    placeholder="Fecha Inicio (AAAA-MM-DD)"
                     value={value}
                     onChangeText={onChange}
                   />
@@ -320,7 +324,7 @@ export default function ManagePromotionsScreen() {
                 <View style={[styles.inputContainer, styles.halfInput]}>
                   <TextInput
                     style={styles.input}
-                    placeholder="End Date (YYYY-MM-DD)"
+                    placeholder="Fecha Fin (AAAA-MM-DD)"
                     value={value}
                     onChangeText={onChange}
                   />
@@ -336,7 +340,7 @@ export default function ManagePromotionsScreen() {
               <View style={styles.inputContainer}>
                 <TextInput
                   style={styles.input}
-                  placeholder="Image URL"
+                  placeholder="URL de Imagen"
                   value={value}
                   onChangeText={onChange}
                 />
@@ -351,7 +355,7 @@ export default function ManagePromotionsScreen() {
               <View style={styles.inputContainer}>
                 <TextInput
                   style={[styles.input, styles.textArea]}
-                  placeholder="Terms and Conditions"
+                  placeholder="Términos y Condiciones"
                   value={value}
                   onChangeText={onChange}
                   multiline
@@ -366,7 +370,7 @@ export default function ManagePromotionsScreen() {
             onPress={handleSubmit(onSubmit)}
           >
             <Text style={styles.submitButtonText}>
-              {editingId ? 'Update Promotion' : 'Add Promotion'}
+              {editingId ? 'Actualizar Promoción' : 'Agregar Promoción'}
             </Text>
           </Pressable>
 
@@ -378,19 +382,19 @@ export default function ManagePromotionsScreen() {
                 reset(defaultFormValues);
               }}
             >
-              <Text style={styles.cancelButtonText}>Cancel</Text>
+              <Text style={styles.cancelButtonText}>Cancelar</Text>
             </Pressable>
           )}
         </View>
 
         <View style={styles.promotionsContainer}>
-          <Text style={styles.listTitle}>Promotions</Text>
+          <Text style={styles.listTitle}>Promociones</Text>
           {promotions.map((promotion) => (
             <View key={promotion.id} style={styles.promotionItem}>
               <View style={styles.promotionInfo}>
                 <Text style={styles.promotionTitle}>{promotion.title}</Text>
                 <Text style={styles.promotionStore}>
-                  {promotion.stores?.name || 'Unknown Store'}
+                  {promotion.stores?.name || 'Negocio Desconocido'}
                   {promotion.stores?.shopping_malls?.name &&
                     ` (${promotion.stores.shopping_malls.name})`}
                 </Text>

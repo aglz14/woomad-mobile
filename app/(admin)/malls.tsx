@@ -68,7 +68,9 @@ export default function ManageMallsScreen() {
       setMalls(data || []);
     } catch (err) {
       console.error('Error fetching malls:', err);
-      setError('Error loading shopping centers. Please try again.');
+      setError(
+        'Error al cargar plazas comerciales. Por favor, intente de nuevo.'
+      );
     } finally {
       setLoading(false);
     }
@@ -116,8 +118,8 @@ export default function ManageMallsScreen() {
     } catch (err) {
       setError(
         editingId
-          ? 'Error updating shopping center'
-          : 'Error creating shopping center'
+          ? 'Error al actualizar plaza comercial'
+          : 'Error al crear plaza comercial'
       );
       console.error('Error saving mall:', err);
     } finally {
@@ -148,7 +150,9 @@ export default function ManageMallsScreen() {
       await fetchMalls();
     } catch (err) {
       console.error('Error deleting mall:', err);
-      setError('Error deleting shopping center. Please try again.');
+      setError(
+        'Error al eliminar plaza comercial. Por favor, intente de nuevo.'
+      );
     } finally {
       setLoading(false);
     }
@@ -177,18 +181,20 @@ export default function ManageMallsScreen() {
 
         <View style={styles.form}>
           <Text style={styles.formTitle}>
-            {editingId ? 'Edit Shopping Center' : 'Add New Shopping Center'}
+            {editingId
+              ? 'Editar Plaza Comercial'
+              : 'Agregar Nueva Plaza Comercial'}
           </Text>
 
           <Controller
             control={control}
             name="name"
-            rules={{ required: 'Name is required' }}
+            rules={{ required: 'El nombre es obligatorio' }}
             render={({ field: { onChange, value } }) => (
               <View style={styles.inputContainer}>
                 <TextInput
                   style={[styles.input, errors.name && styles.inputError]}
-                  placeholder="Name"
+                  placeholder="Nombre"
                   value={value}
                   onChangeText={onChange}
                 />
@@ -202,12 +208,12 @@ export default function ManageMallsScreen() {
           <Controller
             control={control}
             name="address"
-            rules={{ required: 'Address is required' }}
+            rules={{ required: 'La dirección es obligatoria' }}
             render={({ field: { onChange, value } }) => (
               <View style={styles.inputContainer}>
                 <TextInput
                   style={[styles.input, errors.address && styles.inputError]}
-                  placeholder="Address"
+                  placeholder="Dirección"
                   value={value}
                   onChangeText={onChange}
                 />
@@ -224,14 +230,15 @@ export default function ManageMallsScreen() {
             control={control}
             name="description"
             render={({ field: { onChange, value } }) => (
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                placeholder="Description"
-                value={value}
-                onChangeText={onChange}
-                multiline
-                numberOfLines={4}
-              />
+              <View style={styles.inputContainer}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Descripción"
+                  value={value}
+                  onChangeText={onChange}
+                  multiline
+                />
+              </View>
             )}
           />
 
@@ -239,18 +246,12 @@ export default function ManageMallsScreen() {
             <Controller
               control={control}
               name="latitude"
-              rules={{
-                required: 'Latitude is required',
-                pattern: {
-                  value: /^-?([0-8]?[0-9]|90)(\.[0-9]+)?$/,
-                  message: 'Invalid latitude (-90 to 90)',
-                },
-              }}
+              rules={{ required: 'La latitud es obligatoria' }}
               render={({ field: { onChange, value } }) => (
-                <View style={[styles.inputContainer, styles.halfWidth]}>
+                <View style={[styles.inputContainer, styles.halfInput]}>
                   <TextInput
                     style={[styles.input, errors.latitude && styles.inputError]}
-                    placeholder="Latitude"
+                    placeholder="Latitud"
                     value={value}
                     onChangeText={onChange}
                     keyboardType="numeric"
@@ -267,21 +268,15 @@ export default function ManageMallsScreen() {
             <Controller
               control={control}
               name="longitude"
-              rules={{
-                required: 'Longitude is required',
-                pattern: {
-                  value: /^-?([0-9]?[0-9]|1[0-7][0-9]|180)(\.[0-9]+)?$/,
-                  message: 'Invalid longitude (-180 to 180)',
-                },
-              }}
+              rules={{ required: 'La longitud es obligatoria' }}
               render={({ field: { onChange, value } }) => (
-                <View style={[styles.inputContainer, styles.halfWidth]}>
+                <View style={[styles.inputContainer, styles.halfInput]}>
                   <TextInput
                     style={[
                       styles.input,
                       errors.longitude && styles.inputError,
                     ]}
-                    placeholder="Longitude"
+                    placeholder="Longitud"
                     value={value}
                     onChangeText={onChange}
                     keyboardType="numeric"
@@ -300,53 +295,48 @@ export default function ManageMallsScreen() {
             control={control}
             name="image"
             render={({ field: { onChange, value } }) => (
-              <TextInput
-                style={styles.input}
-                placeholder="Image URL"
-                value={value}
-                onChangeText={onChange}
-              />
+              <View style={styles.inputContainer}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="URL de Imagen"
+                  value={value}
+                  onChangeText={onChange}
+                />
+              </View>
             )}
           />
 
-          <View style={styles.buttonContainer}>
-            <Pressable
-              style={[styles.button, styles.submitButton]}
-              onPress={handleSubmit(onSubmit)}
-              disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.buttonText}>
-                  {editingId ? 'Update' : 'Add'} Shopping Center
-                </Text>
-              )}
-            </Pressable>
+          <Pressable
+            style={styles.submitButton}
+            onPress={handleSubmit(onSubmit)}
+          >
+            <Text style={styles.submitButtonText}>
+              {editingId ? 'Actualizar Plaza' : 'Agregar Plaza'}
+            </Text>
+          </Pressable>
 
-            {editingId && (
-              <Pressable
-                style={[styles.button, styles.cancelButton]}
-                onPress={() => {
-                  reset(defaultFormValues);
-                  setEditingId(null);
-                }}
-              >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </Pressable>
-            )}
-          </View>
+          {editingId && (
+            <Pressable
+              style={styles.cancelButton}
+              onPress={() => {
+                setEditingId(null);
+                reset(defaultFormValues);
+              }}
+            >
+              <Text style={styles.cancelButtonText}>Cancelar</Text>
+            </Pressable>
+          )}
         </View>
 
         <View style={styles.mallsContainer}>
-          <Text style={styles.listTitle}>Shopping Centers</Text>
+          <Text style={styles.listTitle}>Plazas Comerciales</Text>
           {malls.map((mall) => (
-            <View key={mall.id} style={styles.mallCard}>
+            <View key={mall.id} style={styles.mallItem}>
               <View style={styles.mallInfo}>
                 <Text style={styles.mallName}>{mall.name}</Text>
                 <Text style={styles.mallAddress}>{mall.address}</Text>
               </View>
-              <View style={styles.actions}>
+              <View style={styles.actionButtons}>
                 <Pressable
                   style={[styles.actionButton, styles.editButton]}
                   onPress={() => editMall(mall)}

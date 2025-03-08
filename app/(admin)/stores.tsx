@@ -15,8 +15,6 @@ import {
   CreditCard as Edit2,
   Trash2,
   CircleAlert as AlertCircle,
-  Check,
-  X,
 } from 'lucide-react-native';
 import AdminTabBar from '@/components/AdminTabBar';
 
@@ -107,7 +105,7 @@ export default function ManageStoresScreen() {
       setStores(data || []);
     } catch (err) {
       console.error('Error fetching stores:', err);
-      setError('Error loading stores. Please try again.');
+      setError('Error al cargar negocios. Por favor, intente de nuevo.');
     } finally {
       setLoading(false);
     }
@@ -195,7 +193,9 @@ export default function ManageStoresScreen() {
       setEditingId(null);
       await fetchStores();
     } catch (err) {
-      setError(editingId ? 'Error updating store' : 'Error creating store');
+      setError(
+        editingId ? 'Error al actualizar negocio' : 'Error al crear negocio'
+      );
       console.error('Error saving store:', err);
     } finally {
       setLoading(false);
@@ -261,7 +261,7 @@ export default function ManageStoresScreen() {
       await fetchStores();
     } catch (err) {
       console.error('Error deleting store:', err);
-      setError('Error deleting store. Please try again.');
+      setError('Error al eliminar negocio. Por favor, intente de nuevo.');
     } finally {
       setLoading(false);
     }
@@ -314,18 +314,18 @@ export default function ManageStoresScreen() {
 
         <View style={styles.form}>
           <Text style={styles.formTitle}>
-            {editingId ? 'Edit Store' : 'Add New Store'}
+            {editingId ? 'Editar Negocio' : 'Agregar Nuevo Negocio'}
           </Text>
 
           <Controller
             control={control}
             name="name"
-            rules={{ required: 'Name is required' }}
+            rules={{ required: 'El nombre es obligatorio' }}
             render={({ field: { onChange, value } }) => (
               <View style={styles.inputContainer}>
                 <TextInput
                   style={[styles.input, errors.name && styles.inputError]}
-                  placeholder="Store Name"
+                  placeholder="Nombre del Negocio"
                   value={value}
                   onChangeText={onChange}
                 />
@@ -343,7 +343,7 @@ export default function ManageStoresScreen() {
               <View style={styles.inputContainer}>
                 <TextInput
                   style={styles.input}
-                  placeholder="Description"
+                  placeholder="Descripción"
                   value={value}
                   onChangeText={onChange}
                   multiline
@@ -355,7 +355,7 @@ export default function ManageStoresScreen() {
           <Controller
             control={control}
             name="mall_id"
-            rules={{ required: 'Shopping Center is required' }}
+            rules={{ required: 'La plaza comercial es obligatoria' }}
             render={({ field: { onChange, value } }) => (
               <View style={styles.inputContainer}>
                 <View
@@ -400,7 +400,7 @@ export default function ManageStoresScreen() {
             name="categories"
             render={({ field: { value } }) => (
               <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Categories</Text>
+                <Text style={styles.inputLabel}>Categorías</Text>
                 <View style={styles.categoriesContainer}>
                   {categories.map((category) => (
                     <Pressable
@@ -412,13 +412,6 @@ export default function ManageStoresScreen() {
                       ]}
                       onPress={() => toggleCategory(category.id)}
                     >
-                      {value.includes(category.id) && (
-                        <Check
-                          size={14}
-                          color="#ffffff"
-                          style={styles.categoryIcon}
-                        />
-                      )}
                       <Text
                         style={[
                           styles.categoryChipText,
@@ -442,7 +435,7 @@ export default function ManageStoresScreen() {
               <View style={styles.inputContainer}>
                 <TextInput
                   style={styles.input}
-                  placeholder="Image URL"
+                  placeholder="URL de Imagen"
                   value={value}
                   onChangeText={onChange}
                 />
@@ -458,7 +451,7 @@ export default function ManageStoresScreen() {
                 <View style={[styles.inputContainer, styles.halfInput]}>
                   <TextInput
                     style={styles.input}
-                    placeholder="Floor"
+                    placeholder="Piso"
                     value={value}
                     onChangeText={onChange}
                   />
@@ -473,7 +466,7 @@ export default function ManageStoresScreen() {
                 <View style={[styles.inputContainer, styles.halfInput]}>
                   <TextInput
                     style={styles.input}
-                    placeholder="Local Number"
+                    placeholder="Número de Local"
                     value={value}
                     onChangeText={onChange}
                   />
@@ -490,7 +483,7 @@ export default function ManageStoresScreen() {
                 <View style={[styles.inputContainer, styles.halfInput]}>
                   <TextInput
                     style={styles.input}
-                    placeholder="Phone"
+                    placeholder="Teléfono"
                     value={value}
                     onChangeText={onChange}
                   />
@@ -505,7 +498,7 @@ export default function ManageStoresScreen() {
                 <View style={[styles.inputContainer, styles.halfInput]}>
                   <TextInput
                     style={styles.input}
-                    placeholder="Website"
+                    placeholder="Sitio Web"
                     value={value}
                     onChangeText={onChange}
                   />
@@ -519,7 +512,7 @@ export default function ManageStoresScreen() {
             onPress={handleSubmit(onSubmit)}
           >
             <Text style={styles.submitButtonText}>
-              {editingId ? 'Update Store' : 'Add Store'}
+              {editingId ? 'Actualizar Negocio' : 'Agregar Negocio'}
             </Text>
           </Pressable>
 
@@ -531,19 +524,19 @@ export default function ManageStoresScreen() {
                 reset(defaultFormValues);
               }}
             >
-              <Text style={styles.cancelButtonText}>Cancel</Text>
+              <Text style={styles.cancelButtonText}>Cancelar</Text>
             </Pressable>
           )}
         </View>
 
         <View style={styles.storesContainer}>
-          <Text style={styles.listTitle}>Stores</Text>
+          <Text style={styles.listTitle}>Negocios</Text>
           {stores.map((store) => (
             <View key={store.id} style={styles.storeItem}>
               <View style={styles.storeInfo}>
                 <Text style={styles.storeName}>{store.name}</Text>
                 <Text style={styles.storeDetails}>
-                  {store.shopping_malls?.name || 'No mall assigned'}
+                  {store.shopping_malls?.name || 'Sin plaza asignada'}
                 </Text>
                 {store.array_categories &&
                   store.array_categories.length > 0 && (
@@ -696,9 +689,6 @@ const styles = StyleSheet.create({
   },
   selectedCategoryChip: {
     backgroundColor: '#FF4B4B',
-  },
-  categoryIcon: {
-    marginRight: 4,
   },
   categoryChipText: {
     color: '#666666',
