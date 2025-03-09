@@ -19,7 +19,6 @@ import {
   Calendar,
 } from 'lucide-react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import AdminTabBar from '@/components/AdminTabBar';
 import { useAuth } from '@/hooks/useAuth';
 
 const defaultFormValues = {
@@ -264,7 +263,6 @@ export default function ManagePromotionsScreen() {
         <View style={styles.centered}>
           <ActivityIndicator size="large" color="#FF4B4B" />
         </View>
-        <AdminTabBar />
       </View>
     );
   }
@@ -526,8 +524,6 @@ export default function ManagePromotionsScreen() {
           ))}
         </View>
       </ScrollView>
-
-      <AdminTabBar />
     </View>
   );
 }

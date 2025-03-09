@@ -16,7 +16,6 @@ import {
   Trash2,
   CircleAlert as AlertCircle,
 } from 'lucide-react-native';
-import AdminTabBar from '@/components/AdminTabBar';
 import { useAuth } from '@/hooks/useAuth';
 
 // Define a type for categories
@@ -295,7 +294,6 @@ export default function ManageStoresScreen() {
         <View style={styles.centered}>
           <ActivityIndicator size="large" color="#FF4B4B" />
         </View>
-        <AdminTabBar />
       </View>
     );
   }
@@ -561,8 +559,6 @@ export default function ManageStoresScreen() {
           ))}
         </View>
       </ScrollView>
-
-      <AdminTabBar />
     </View>
   );
 }

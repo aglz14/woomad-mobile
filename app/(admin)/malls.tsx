@@ -15,8 +15,8 @@ import {
   CreditCard as Edit2,
   Trash2,
   CircleAlert as AlertCircle,
+  MapPin,
 } from 'lucide-react-native';
-import AdminTabBar from '@/components/AdminTabBar';
 import { useAuth } from '@/hooks/useAuth';
 
 const defaultFormValues = {
@@ -208,7 +208,6 @@ export default function ManageMallsScreen() {
         <View style={styles.centered}>
           <ActivityIndicator size="large" color="#FF4B4B" />
         </View>
-        <AdminTabBar />
       </View>
     );
   }
@@ -238,7 +237,7 @@ export default function ManageMallsScreen() {
               <View style={styles.inputContainer}>
                 <TextInput
                   style={[styles.input, errors.name && styles.inputError]}
-                  placeholder="Nombre"
+                  placeholder="Nombre de la Plaza"
                   value={value}
                   onChangeText={onChange}
                 />
@@ -276,11 +275,12 @@ export default function ManageMallsScreen() {
             render={({ field: { onChange, value } }) => (
               <View style={styles.inputContainer}>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, styles.textArea]}
                   placeholder="Descripción"
                   value={value}
                   onChangeText={onChange}
                   multiline
+                  numberOfLines={4}
                 />
               </View>
             )}
@@ -364,7 +364,10 @@ export default function ManageMallsScreen() {
               style={styles.cancelButton}
               onPress={() => {
                 setEditingId(null);
-                reset(defaultFormValues);
+                reset({
+                  ...defaultFormValues,
+                  user_id: userId || '',
+                });
               }}
             >
               <Text style={styles.cancelButtonText}>Cancelar</Text>
@@ -378,28 +381,29 @@ export default function ManageMallsScreen() {
             <View key={mall.id} style={styles.mallItem}>
               <View style={styles.mallInfo}>
                 <Text style={styles.mallName}>{mall.name}</Text>
-                <Text style={styles.mallAddress}>{mall.address}</Text>
+                <View style={styles.mallAddressContainer}>
+                  <MapPin size={14} color="#666666" style={styles.mallIcon} />
+                  <Text style={styles.mallAddress}>{mall.address}</Text>
+                </View>
               </View>
               <View style={styles.actionButtons}>
                 <Pressable
                   style={[styles.actionButton, styles.editButton]}
                   onPress={() => editMall(mall)}
                 >
-                  <Edit2 size={20} color="#666666" />
+                  <Edit2 size={16} color="#666666" />
                 </Pressable>
                 <Pressable
                   style={[styles.actionButton, styles.deleteButton]}
                   onPress={() => deleteMall(mall.id)}
                 >
-                  <Trash2 size={20} color="#FF4B4B" />
+                  <Trash2 size={16} color="#FF4B4B" />
                 </Pressable>
               </View>
             </View>
           ))}
         </View>
       </ScrollView>
-
-      <AdminTabBar />
     </View>
   );
 }
@@ -423,9 +427,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#FFE5E5',
     padding: 12,
-    marginHorizontal: 20,
-    marginTop: 20,
     borderRadius: 8,
+    margin: 20,
+    marginBottom: 0,
   },
   errorText: {
     color: '#FF4B4B',
@@ -437,24 +441,32 @@ const styles = StyleSheet.create({
     margin: 20,
     padding: 20,
     borderRadius: 12,
-    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.1)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   formTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '600',
+    marginBottom: 16,
     color: '#1a1a1a',
-    marginBottom: 20,
   },
   inputContainer: {
     marginBottom: 16,
   },
   input: {
-    backgroundColor: '#f8f9fa',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
-    borderWidth: 1,
-    borderColor: '#e9ecef',
+    backgroundColor: '#ffffff',
+  },
+  textArea: {
+    height: 100,
+    textAlignVertical: 'top',
   },
   inputError: {
     borderColor: '#FF4B4B',
@@ -464,38 +476,31 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 4,
   },
-  textArea: {
-    height: 100,
-    textAlignVertical: 'top',
-  },
   row: {
     flexDirection: 'row',
-    gap: 12,
-    marginBottom: 16,
+    justifyContent: 'space-between',
   },
-  halfWidth: {
-    flex: 1,
-  },
-  buttonContainer: {
-    gap: 12,
-  },
-  button: {
-    padding: 16,
-    borderRadius: 8,
-    alignItems: 'center',
+  halfInput: {
+    width: '48%',
   },
   submitButton: {
     backgroundColor: '#FF4B4B',
+    borderRadius: 8,
+    padding: 16,
+    alignItems: 'center',
+    marginTop: 8,
   },
-  cancelButton: {
-    backgroundColor: '#f8f9fa',
-    borderWidth: 1,
-    borderColor: '#dee2e6',
-  },
-  buttonText: {
+  submitButtonText: {
     color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  cancelButton: {
+    backgroundColor: '#f0f0f0',
+    borderRadius: 8,
+    padding: 16,
+    alignItems: 'center',
+    marginTop: 8,
   },
   cancelButtonText: {
     color: '#666666',
@@ -508,16 +513,22 @@ const styles = StyleSheet.create({
   listTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1a1a1a',
     marginBottom: 16,
+    color: '#1a1a1a',
   },
-  mallCard: {
+  mallItem: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     backgroundColor: '#ffffff',
     padding: 16,
     borderRadius: 8,
     marginBottom: 12,
-    boxShadow: '0px 1px 4px rgba(0, 0, 0, 0.1)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
   },
   mallInfo: {
     flex: 1,
@@ -527,19 +538,26 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#1a1a1a',
   },
+  mallAddressContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  mallIcon: {
+    marginRight: 4,
+  },
   mallAddress: {
     fontSize: 14,
     color: '#666666',
-    marginTop: 4,
   },
-  actions: {
+  actionButtons: {
     flexDirection: 'row',
-    gap: 8,
   },
   actionButton: {
     padding: 8,
     borderRadius: 8,
     backgroundColor: '#f8f9fa',
+    marginLeft: 8,
   },
   editButton: {
     borderWidth: 1,
