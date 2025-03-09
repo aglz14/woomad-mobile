@@ -56,8 +56,10 @@ export default function TabLayout() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
+        // No longer redirecting unauthenticated users to login
+        // Just log the authentication status
         if (!isLoading && !session) {
-          router.replace('/auth/login');
+          console.log('User is not authenticated, allowing guest access');
         }
       } catch (err) {
         console.error('Authentication error:', err);

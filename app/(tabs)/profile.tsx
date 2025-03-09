@@ -6,7 +6,7 @@ import {
   Pressable,
   ScrollView,
 } from 'react-native';
-import { Bell, Settings, ChevronRight } from 'lucide-react-native';
+import { Bell, Settings, ChevronRight, User, Plus } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
@@ -20,8 +20,10 @@ export default function ProfileScreen() {
 
   // Fetch notification preferences when the component mounts
   useEffect(() => {
-    fetchUserPreferences();
-  }, []);
+    if (session) {
+      fetchUserPreferences();
+    }
+  }, [session]);
 
   async function handleLogout() {
     try {
@@ -32,6 +34,48 @@ export default function ProfileScreen() {
     } finally {
       setIsLoggingOut(false);
     }
+  }
+
+  // Render different UI for authenticated and unauthenticated users
+  if (!session) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <View style={styles.headerContent}>
+            <Text style={styles.title}>Mi Perfil</Text>
+            <Text style={styles.subtitle}>
+              Inicia sesión para acceder a todas las funciones
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.guestContent}>
+          <Pressable
+            style={styles.authButton}
+            onPress={() => router.push('/auth/login')}
+          >
+            <User size={24} color="#ffffff" />
+            <Text style={styles.authButtonText}>Iniciar Sesión</Text>
+          </Pressable>
+
+          <Pressable
+            style={[styles.authButton, styles.signupButton]}
+            onPress={() => router.push('/auth/signup')}
+          >
+            <Plus size={24} color="#ffffff" />
+            <Text style={styles.authButtonText}>Crear Cuenta</Text>
+          </Pressable>
+
+          <View style={styles.guestInfoContainer}>
+            <Text style={styles.guestInfoTitle}>¿Por qué iniciar sesión?</Text>
+            <Text style={styles.guestInfoText}>
+              • Recibe notificaciones de promociones cercanas{'\n'}• Guarda tus
+              centros comerciales favoritos{'\n'}• Personaliza tu experiencia
+            </Text>
+          </View>
+        </View>
+      </View>
+    );
   }
 
   return (
@@ -147,6 +191,11 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#1a1a1a',
   },
+  subtitle: {
+    fontSize: 16,
+    color: '#666666',
+    marginTop: 4,
+  },
   userInfo: {
     marginTop: 12,
   },
@@ -210,5 +259,48 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  guestContent: {
+    flex: 1,
+    padding: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  authButton: {
+    backgroundColor: '#FF4B4B',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+  },
+  authButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  signupButton: {
+    backgroundColor: '#1a1a1a',
+  },
+  guestInfoContainer: {
+    backgroundColor: '#ffffff',
+    padding: 20,
+    borderRadius: 12,
+    marginTop: 20,
+    width: '100%',
+  },
+  guestInfoTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1a1a1a',
+    marginBottom: 12,
+  },
+  guestInfoText: {
+    fontSize: 14,
+    color: '#666666',
+    lineHeight: 22,
   },
 });

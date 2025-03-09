@@ -102,7 +102,11 @@ export function useNotifications() {
 
   useEffect(() => {
     if (session?.user?.id) {
+      // For authenticated users, fetch preferences from database
       fetchUserPreferences();
+    } else {
+      // For unauthenticated users, use default preference (false)
+      setUserPreference(false);
     }
   }, [session?.user?.id]);
 
@@ -114,6 +118,8 @@ export function useNotifications() {
   async function fetchUserPreferences() {
     try {
       if (!session?.user?.id) {
+        // For unauthenticated users, use default preference
+        setUserPreference(false);
         return;
       }
 
@@ -137,6 +143,8 @@ export function useNotifications() {
       }
     } catch (error) {
       console.error('Error in fetchUserPreferences:', error);
+      // Default to false on error
+      setUserPreference(false);
     }
   }
 
@@ -180,12 +188,15 @@ export function useNotifications() {
 
       setHasPermission(true);
 
-      // Also update the user preference in the database
+      // Also update the user preference in the database if user is authenticated
       if (session?.user?.id) {
         await supabase.from('user_preferences').upsert({
           user_id: session.user.id,
           notifications_enabled: true,
         });
+        setUserPreference(true);
+      } else {
+        // For unauthenticated users, just update the local state
         setUserPreference(true);
       }
     } catch (error) {

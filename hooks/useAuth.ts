@@ -29,7 +29,7 @@ export function useAuth() {
       // If there's no session, just reset the auth state
       if (!currentSession) {
         resetAuthState();
-        router.replace('/auth/login');
+        router.replace('/(tabs)');
         return;
       }
 
@@ -43,12 +43,11 @@ export function useAuth() {
       }
 
       resetAuthState();
-      router.replace('/auth/login');
+      router.replace('/(tabs)');
     } catch (error) {
       console.error('Error signing out:', error);
       // Even if there's an error, we'll reset the local state
       resetAuthState();
-      router.replace('/auth/login');
     } finally {
       setIsLoading(false);
     }
