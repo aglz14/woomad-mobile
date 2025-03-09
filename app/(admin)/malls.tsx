@@ -118,7 +118,6 @@ export default function ManageMallsScreen() {
           throw new Error('No tienes permiso para editar esta plaza comercial');
         }
 
-        // Update existing mall
         const { error: updateError } = await supabase
           .from('shopping_malls')
           .update(formattedData)
@@ -126,7 +125,6 @@ export default function ManageMallsScreen() {
 
         if (updateError) throw updateError;
       } else {
-        // Insert new mall
         const { error: insertError } = await supabase
           .from('shopping_malls')
           .insert(formattedData);
@@ -134,12 +132,27 @@ export default function ManageMallsScreen() {
         if (insertError) throw insertError;
       }
 
+      // Clear form and reset to default values
       reset({
-        ...defaultFormValues,
+        name: '',
+        address: '',
+        description: '',
+        latitude: '',
+        longitude: '',
+        image: '',
         user_id: userId || '',
       });
+
+      // Clear editing state
       setEditingId(null);
+
+      // Refresh the mall list
       await fetchMalls();
+
+      // Show success message
+      alert(
+        editingId ? 'Plaza actualizada con éxito' : 'Plaza creada con éxito'
+      );
     } catch (err: any) {
       setError(
         err.message ||

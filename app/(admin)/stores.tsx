@@ -200,12 +200,30 @@ export default function ManageStoresScreen() {
         if (insertError) throw insertError;
       }
 
+      // Clear form and reset to default values
       reset({
-        ...defaultFormValues,
+        name: '',
+        description: '',
+        mall_id: '',
+        categories: [],
+        image: '',
+        phone: '',
+        website: '',
+        floor: '',
+        local_number: '',
         user_id: userId || '',
       });
+
+      // Clear editing state
       setEditingId(null);
+
+      // Refresh the store list
       await fetchStores();
+
+      // Show success message
+      alert(
+        editingId ? 'Negocio actualizado con éxito' : 'Negocio creado con éxito'
+      );
     } catch (err: any) {
       setError(
         err.message ||

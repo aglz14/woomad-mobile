@@ -177,12 +177,30 @@ export default function ManagePromotionsScreen() {
         if (insertError) throw insertError;
       }
 
+      // Clear form and reset to default values
       reset({
-        ...defaultFormValues,
+        title: '',
+        description: '',
+        store_id: '',
+        start_date: new Date().toISOString(),
+        end_date: new Date().toISOString(),
+        image: '',
+        terms_conditions: '',
         user_id: userId || '',
       });
+
+      // Clear editing state
       setEditingId(null);
+
+      // Refresh the promotions list
       await fetchPromotions();
+
+      // Show success message
+      alert(
+        editingId
+          ? 'Promoción actualizada con éxito'
+          : 'Promoción creada con éxito'
+      );
     } catch (err: any) {
       setError(
         err.message ||
