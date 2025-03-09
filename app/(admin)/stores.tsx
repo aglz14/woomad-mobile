@@ -79,7 +79,7 @@ export default function ManageStoresScreen() {
   });
 
   // Watch the categories field to update the UI when it changes
-  const selectedCategories = watch('categories');
+  const selectedCategories = watch('categories') || [];
 
   useEffect(() => {
     if (userId) {
@@ -163,7 +163,7 @@ export default function ManageStoresScreen() {
         name: data.name,
         description: data.description,
         mall_id: data.mall_id,
-        array_categories: data.categories,
+        array_categories: Array.isArray(data.categories) ? data.categories : [],
         image: data.image,
         phone: data.phone,
         website: data.website,
@@ -201,18 +201,21 @@ export default function ManageStoresScreen() {
       }
 
       // Clear form and reset to default values
-      reset({
-        name: '',
-        description: '',
-        mall_id: '',
-        categories: [],
-        image: '',
-        phone: '',
-        website: '',
-        floor: '',
-        local_number: '',
-        user_id: userId || '',
-      });
+      reset(
+        {
+          name: '',
+          description: '',
+          mall_id: '',
+          categories: [],
+          image: '',
+          phone: '',
+          website: '',
+          floor: '',
+          local_number: '',
+          user_id: userId || '',
+        },
+        { keepDefaultValues: false }
+      );
 
       // Clear editing state
       setEditingId(null);
@@ -242,11 +245,17 @@ export default function ManageStoresScreen() {
     }
 
     setEditingId(store.id);
+
+    // Ensure array_categories is always an array
+    const categories = Array.isArray(store.array_categories)
+      ? store.array_categories
+      : [];
+
     reset({
       name: store.name,
       description: store.description || '',
       mall_id: store.mall_id,
-      categories: store.array_categories || [],
+      categories: categories,
       image: store.image || '',
       phone: store.phone || '',
       website: store.website || '',
@@ -296,7 +305,10 @@ export default function ManageStoresScreen() {
 
   // Helper function to toggle a category selection
   function toggleCategory(categoryId: string) {
-    const currentCategories = [...selectedCategories];
+    // Ensure we have a valid array to work with
+    const currentCategories = Array.isArray(selectedCategories)
+      ? [...selectedCategories]
+      : [];
     const index = currentCategories.indexOf(categoryId);
 
     if (index > -1) {
@@ -416,34 +428,39 @@ export default function ManageStoresScreen() {
           <Controller
             control={control}
             name="categories"
-            render={({ field: { value } }) => (
-              <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Categorías</Text>
-                <View style={styles.categoriesContainer}>
-                  {categories.map((category) => (
-                    <Pressable
-                      key={category.id}
-                      style={[
-                        styles.categoryChip,
-                        value.includes(category.id) &&
-                          styles.selectedCategoryChip,
-                      ]}
-                      onPress={() => toggleCategory(category.id)}
-                    >
-                      <Text
+            render={({ field: { value } }) => {
+              // Ensure value is always an array
+              const categoriesValue = Array.isArray(value) ? value : [];
+
+              return (
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Categorías</Text>
+                  <View style={styles.categoriesContainer}>
+                    {categories.map((category) => (
+                      <Pressable
+                        key={category.id}
                         style={[
-                          styles.categoryChipText,
-                          value.includes(category.id) &&
-                            styles.selectedCategoryChipText,
+                          styles.categoryChip,
+                          categoriesValue.includes(category.id) &&
+                            styles.selectedCategoryChip,
                         ]}
+                        onPress={() => toggleCategory(category.id)}
                       >
-                        {category.name}
-                      </Text>
-                    </Pressable>
-                  ))}
+                        <Text
+                          style={[
+                            styles.categoryChipText,
+                            categoriesValue.includes(category.id) &&
+                              styles.selectedCategoryChipText,
+                          ]}
+                        >
+                          {category.name}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
                 </View>
-              </View>
-            )}
+              );
+            }}
           />
 
           <Controller
