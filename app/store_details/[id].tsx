@@ -236,7 +236,7 @@ export default function StoreDetailsScreen() {
                       <View style={styles.promotionDateContainer}>
                         <Calendar size={16} color="#666666" />
                         <Text style={styles.promotionDate}>
-                          Válido hasta {formatDate(promotion.end_date)}
+                          {'Válido hasta ' + formatDate(promotion.end_date)}
                         </Text>
                       </View>
                     </View>
