@@ -59,7 +59,10 @@ export default function ProfileScreen() {
             </View>
             <ChevronRight size={20} color="#666666" />
           </Pressable>
-          <Pressable style={styles.menuItem}>
+          <Pressable
+            style={styles.menuItem}
+            onPress={() => router.push('/settings')}
+          >
             <View style={styles.menuItemLeft}>
               <Settings size={24} color="#666666" />
               <Text style={styles.menuItemText}>Configuración</Text>
