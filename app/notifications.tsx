@@ -34,7 +34,7 @@ export default function NotificationsScreen() {
   const [saving, setSaving] = useState(false);
   const [preferences, setPreferences] = useState<UserPreferences>({
     notifications_enabled: false,
-    notification_radius: 2,
+    notification_radius: 4,
   });
   const [error, setError] = useState<string | null>(null);
 
@@ -80,7 +80,7 @@ export default function NotificationsScreen() {
         const defaultPreferences = {
           user_id: session.user.id,
           notifications_enabled: false,
-          notification_radius: 2,
+          notification_radius: 4,
         };
 
         const { error: insertError } = await supabase
@@ -95,7 +95,7 @@ export default function NotificationsScreen() {
       } else {
         setPreferences({
           notifications_enabled: data.notifications_enabled || false,
-          notification_radius: data.notification_radius || 2,
+          notification_radius: data.notification_radius || 4,
         });
       }
     } catch (error) {
@@ -104,7 +104,7 @@ export default function NotificationsScreen() {
       // Set default preferences even if there's an error
       setPreferences({
         notifications_enabled: false,
-        notification_radius: 2,
+        notification_radius: 4,
       });
     } finally {
       setLoading(false);
@@ -232,7 +232,8 @@ export default function NotificationsScreen() {
             <View style={styles.settingInfo}>
               <Text style={styles.settingTitle}>Radio de Notificación</Text>
               <Text style={styles.settingDescription}>
-                Distancia máxima para recibir notificaciones
+                Distancia máxima para recibir notificaciones (predeterminado: 4
+                km)
               </Text>
               <Text style={styles.currentValue}>
                 {preferences.notification_radius} kilómetros

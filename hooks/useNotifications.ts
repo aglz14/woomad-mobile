@@ -9,7 +9,7 @@ import { router } from 'expo-router';
 import { useAuth } from '@/hooks/useAuth';
 
 const BACKGROUND_FETCH_TASK = 'BACKGROUND_LOCATION_TASK';
-const NOTIFICATION_DISTANCE = 50; // Maximum distance in kilometers
+const DEFAULT_NOTIFICATION_DISTANCE = 4; // Default maximum distance in kilometers
 
 // Configure notification behavior
 Notifications.setNotificationHandler({
@@ -33,6 +33,38 @@ TaskManager.defineTask(BACKGROUND_FETCH_TASK, async () => {
 
     if (error) throw error;
 
+    // Get user preferences for notification radius
+    let notificationRadius = DEFAULT_NOTIFICATION_DISTANCE;
+
+    try {
+      // Try to get the user's session
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (session?.user?.id) {
+        // Get user's notification preferences
+        const { data: preferences } = await supabase
+          .from('user_preferences')
+          .select('notification_radius, notifications_enabled')
+          .eq('user_id', session.user.id)
+          .single();
+
+        // Only proceed if notifications are enabled
+        if (!preferences?.notifications_enabled) {
+          return BackgroundFetch.BackgroundFetchResult.NoData;
+        }
+
+        // Use user's preferred radius if available
+        if (preferences?.notification_radius) {
+          notificationRadius = preferences.notification_radius;
+        }
+      }
+    } catch (err) {
+      // If there's an error getting preferences, use the default radius
+      console.log('Error getting user preferences, using default radius:', err);
+    }
+
     // Check distance to each mall
     for (const mall of malls) {
       const distance = calculateDistance(
@@ -42,12 +74,14 @@ TaskManager.defineTask(BACKGROUND_FETCH_TASK, async () => {
         mall.longitude
       );
 
-      // If within notification distance, send notification
-      if (distance <= NOTIFICATION_DISTANCE) {
+      // If within notification radius, send notification
+      if (distance <= notificationRadius) {
         await Notifications.scheduleNotificationAsync({
           content: {
             title: '¡Centro comercial cerca!',
-            body: `${mall.name} está a ${distance.toFixed(1)}km de ti`,
+            body: `${mall.name} está a ${distance.toFixed(
+              1
+            )}km de ti. Toca para ver detalles.`,
             data: { mallId: mall.id },
           },
           trigger: null,
@@ -240,6 +274,7 @@ export function useNotifications() {
       Notifications.addNotificationResponseReceivedListener((response) => {
         const mallId = response.notification.request.content.data?.mallId;
         if (mallId) {
+          // Navigate to the center details page when notification is tapped
           router.push(`/center_details/${mallId}`);
         }
       });
