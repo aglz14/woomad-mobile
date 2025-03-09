@@ -109,6 +109,9 @@ export default function ProfileScreen() {
 
   // Render different UI for authenticated and unauthenticated users
   if (!session) {
+    // Use a conditional to handle web platform differently
+    const ContentContainer = Platform.OS === 'web' ? View : ScrollView;
+
     return (
       <View style={styles.container}>
         <View style={styles.header}>
@@ -120,7 +123,7 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        <ScrollView style={styles.guestContent}>
+        <ContentContainer style={styles.guestContent}>
           <Pressable
             style={styles.authButton}
             onPress={() => router.push('/auth/login')}
@@ -138,7 +141,7 @@ export default function ProfileScreen() {
           </Pressable>
 
           {/* Add notification preferences for guest users */}
-          <GuestNotificationPreferences />
+          {Platform.OS !== 'web' && <GuestNotificationPreferences />}
 
           <View style={styles.guestInfoContainer}>
             <Text style={styles.guestInfoTitle}>¿Por qué iniciar sesión?</Text>
@@ -147,7 +150,7 @@ export default function ProfileScreen() {
               comerciales favoritos{'\n'}• Personaliza tu experiencia
             </Text>
           </View>
-        </ScrollView>
+        </ContentContainer>
       </View>
     );
   }

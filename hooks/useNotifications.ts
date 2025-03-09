@@ -153,35 +153,49 @@ export function useNotifications() {
   const { session } = useAuth();
   const notificationListener = useRef<any>();
   const responseListener = useRef<any>();
+  const isWeb = Platform.OS === 'web';
 
   useEffect(() => {
-    checkNotificationPermission();
-    checkLocationPermission();
-    setupNotificationListeners();
-    setupBackgroundTask();
+    if (!isWeb) {
+      checkNotificationPermission();
+      checkLocationPermission();
+      setupNotificationListeners();
+      setupBackgroundTask();
+    }
 
     return () => {
-      cleanup();
+      if (!isWeb) {
+        cleanup();
+      }
     };
-  }, []);
+  }, [isWeb]);
 
   useEffect(() => {
     if (session?.user?.id) {
       // For authenticated users, fetch preferences from database
       fetchUserPreferences();
-    } else {
-      // For unauthenticated users, fetch preferences from AsyncStorage
+    } else if (!isWeb) {
+      // For non-authenticated users on native platforms, fetch preferences from AsyncStorage
       fetchLocalPreferences();
     }
-  }, [session?.user?.id]);
+  }, [session?.user?.id, isWeb]);
 
   // Update isEnabled whenever permissions or user preference changes
   useEffect(() => {
-    setIsEnabled(hasPermission && hasLocationPermission && userPreference);
-  }, [hasPermission, hasLocationPermission, userPreference]);
+    // On web, always set permissions to false since they're not supported
+    if (isWeb) {
+      setHasPermission(false);
+      setHasLocationPermission(false);
+      setIsEnabled(false);
+    } else {
+      setIsEnabled(hasPermission && hasLocationPermission && userPreference);
+    }
+  }, [hasPermission, hasLocationPermission, userPreference, isWeb]);
 
   async function fetchLocalPreferences() {
     try {
+      if (isWeb) return;
+
       const storedEnabled = await AsyncStorage.getItem(
         NOTIFICATION_ENABLED_KEY
       );
@@ -206,8 +220,10 @@ export function useNotifications() {
   async function fetchUserPreferences() {
     try {
       if (!session?.user?.id) {
-        // For unauthenticated users, use local storage
-        fetchLocalPreferences();
+        // For non-authenticated users, use local storage
+        if (!isWeb) {
+          fetchLocalPreferences();
+        }
         return;
       }
 
@@ -244,7 +260,7 @@ export function useNotifications() {
   async function checkNotificationPermission() {
     try {
       // Only proceed on native platforms
-      if (Platform.OS === 'web') {
+      if (isWeb) {
         console.log('Push notifications are not supported on web');
         return;
       }
@@ -261,7 +277,7 @@ export function useNotifications() {
   async function checkLocationPermission() {
     try {
       // Only proceed on native platforms
-      if (Platform.OS === 'web') {
+      if (isWeb) {
         console.log('Location permissions are not supported on web');
         return;
       }
@@ -278,9 +294,9 @@ export function useNotifications() {
   async function requestLocationPermission() {
     try {
       // Only proceed on native platforms
-      if (Platform.OS === 'web') {
+      if (isWeb) {
         console.log('Location permissions are not supported on web');
-        return;
+        return false;
       }
 
       const { status: existingStatus } =
@@ -312,9 +328,9 @@ export function useNotifications() {
   async function registerForPushNotificationsAsync() {
     try {
       // Only proceed on native platforms
-      if (Platform.OS === 'web') {
+      if (isWeb) {
         console.log('Push notifications are not supported on web');
-        return;
+        return false;
       }
 
       // First request location permission
@@ -357,6 +373,7 @@ export function useNotifications() {
         );
         setUserPreference(true);
       }
+      return true;
     } catch (error) {
       console.error('Error registering for notifications:', error);
       setHasPermission(false);
@@ -369,6 +386,8 @@ export function useNotifications() {
     radius: number = DEFAULT_NOTIFICATION_DISTANCE
   ) {
     try {
+      if (isWeb) return;
+
       await AsyncStorage.setItem(NOTIFICATION_ENABLED_KEY, enabled.toString());
       await AsyncStorage.setItem(NOTIFICATION_RADIUS_KEY, radius.toString());
 
@@ -382,7 +401,7 @@ export function useNotifications() {
   async function setupBackgroundTask() {
     try {
       // Only register background tasks on native platforms
-      if (Platform.OS === 'web') {
+      if (isWeb) {
         console.log('Background tasks are not supported on web');
         return;
       }
@@ -399,7 +418,7 @@ export function useNotifications() {
 
   function setupNotificationListeners() {
     // Only setup listeners on native platforms
-    if (Platform.OS === 'web') {
+    if (isWeb) {
       return;
     }
 
@@ -421,7 +440,7 @@ export function useNotifications() {
   }
 
   function cleanup() {
-    if (Platform.OS === 'web') {
+    if (isWeb) {
       return;
     }
 
