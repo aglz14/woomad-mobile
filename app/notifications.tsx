@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   ScrollView,
   Platform,
+  Alert,
 } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { useNotifications } from '@/hooks/useNotifications';
@@ -26,8 +27,10 @@ export default function NotificationsScreen() {
   const {
     isEnabled,
     hasPermission,
+    hasLocationPermission,
     userPreference,
     registerForPushNotificationsAsync,
+    requestLocationPermission,
     fetchUserPreferences,
   } = useNotifications();
   const [loading, setLoading] = useState(true);
@@ -37,6 +40,7 @@ export default function NotificationsScreen() {
     notification_radius: 4,
   });
   const [error, setError] = useState<string | null>(null);
+  const [permissionError, setPermissionError] = useState<string | null>(null);
 
   useEffect(() => {
     if (session?.user?.id) {
@@ -115,9 +119,37 @@ export default function NotificationsScreen() {
     try {
       setSaving(true);
       setError(null);
+      setPermissionError(null);
 
       if (!session?.user?.id) {
         throw new Error('No user ID available');
+      }
+
+      // If enabling notifications, check permissions first
+      if (updates.notifications_enabled === true) {
+        // Check location permission first
+        if (!hasLocationPermission) {
+          const locationGranted = await requestLocationPermission();
+          if (!locationGranted) {
+            setPermissionError(
+              'Se requiere permiso de ubicación para las notificaciones'
+            );
+            setSaving(false);
+            return;
+          }
+        }
+
+        // Then check notification permission
+        if (!hasPermission) {
+          const success = await registerForPushNotificationsAsync();
+          if (!success) {
+            setPermissionError(
+              'No se pudieron habilitar las notificaciones. Por favor, verifica los permisos de tu dispositivo.'
+            );
+            setSaving(false);
+            return;
+          }
+        }
       }
 
       const newPreferences = { ...preferences, ...updates };
@@ -145,11 +177,6 @@ export default function NotificationsScreen() {
       if (upsertError) throw upsertError;
 
       setPreferences(newPreferences);
-
-      // Request permission if enabling notifications and don't have permission
-      if (updates.notifications_enabled && !hasPermission) {
-        await registerForPushNotificationsAsync();
-      }
 
       // Refresh the notification state in the hook
       fetchUserPreferences();
@@ -208,6 +235,12 @@ export default function NotificationsScreen() {
           </View>
         )}
 
+        {permissionError && (
+          <View style={styles.permissionErrorContainer}>
+            <Text style={styles.permissionErrorMessage}>{permissionError}</Text>
+          </View>
+        )}
+
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Configuración General</Text>
 
@@ -227,6 +260,16 @@ export default function NotificationsScreen() {
               disabled={saving}
             />
           </View>
+
+          {(!hasPermission || !hasLocationPermission) &&
+            preferences.notifications_enabled && (
+              <View style={styles.permissionWarning}>
+                <Text style={styles.permissionWarningText}>
+                  Se requieren permisos de ubicación y notificaciones para esta
+                  función. Por favor, verifica los permisos de tu dispositivo.
+                </Text>
+              </View>
+            )}
 
           <View style={styles.settingItem}>
             <View style={styles.settingInfo}>
@@ -404,5 +447,27 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     padding: 16,
     borderRadius: 12,
+  },
+  permissionErrorContainer: {
+    backgroundColor: '#FFE5E5',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  permissionErrorMessage: {
+    color: '#FF4B4B',
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  permissionWarning: {
+    backgroundColor: '#FFF5E5',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  permissionWarningText: {
+    color: '#FF4B4B',
+    fontSize: 14,
+    textAlign: 'center',
   },
 });

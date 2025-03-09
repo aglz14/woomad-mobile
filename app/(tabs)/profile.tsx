@@ -38,19 +38,40 @@ function GuestNotificationPreferences() {
   } = useNotifications();
 
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function handleToggleNotifications(value: boolean) {
     setLoading(true);
+    setError(null);
+
     try {
       if (value) {
+        // First check if we have location permission
+        if (!hasLocationPermission) {
+          // Request location permission first
+          const locationGranted = await requestLocationPermission();
+          if (!locationGranted) {
+            setError(
+              'Se requiere permiso de ubicación para las notificaciones'
+            );
+            return;
+          }
+        }
+
         // If enabling notifications, request permissions and register
-        await registerForPushNotificationsAsync();
+        const success = await registerForPushNotificationsAsync();
+        if (!success) {
+          setError(
+            'No se pudieron habilitar las notificaciones. Por favor, verifica los permisos de tu dispositivo.'
+          );
+        }
       } else {
         // If disabling notifications, just update local storage
         await updateLocalPreferences(false, notificationRadius);
       }
     } catch (error) {
       console.error('Error toggling notifications:', error);
+      setError('Ocurrió un error al cambiar las notificaciones');
     } finally {
       setLoading(false);
     }
@@ -77,7 +98,9 @@ function GuestNotificationPreferences() {
         />
       </View>
 
-      {(!hasPermission || !hasLocationPermission) && (
+      {error && <Text style={styles.guestPermissionNote}>{error}</Text>}
+
+      {(!hasPermission || !hasLocationPermission) && !error && (
         <Text style={styles.guestPermissionNote}>
           Se requieren permisos de ubicación y notificaciones para esta función
         </Text>
