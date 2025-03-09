@@ -2,6 +2,7 @@ import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
 import { router } from 'expo-router';
 import { Building2, Store, Tag, ArrowLeft } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
+import { createBoxShadow } from '@/utils/styles';
 
 export default function AdminScreen() {
   const menuItems = [
@@ -102,11 +103,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderRadius: 12,
     padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    ...createBoxShadow(0, 2, 4, 0.1),
     marginBottom: 16,
   },
   cardTitle: {

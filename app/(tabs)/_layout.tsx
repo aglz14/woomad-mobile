@@ -120,12 +120,12 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          pointerEvents: 'auto',
           backgroundColor: '#ffffff',
           borderTopColor: '#f0f0f0',
           boxShadow: '0px -2px 4px rgba(0, 0, 0, 0.1)',
           height: Platform.OS === 'ios' ? 83 : 70,
           paddingBottom: Platform.OS === 'ios' ? 25 : 12,
+          pointerEvents: 'auto',
         },
         tabBarActiveTintColor: '#FF4B4B',
         tabBarInactiveTintColor: '#8E8E93',
@@ -154,6 +154,11 @@ export default function TabLayout() {
                 }
               : {
                   pointerEvents: 'auto',
+                  backgroundColor: '#ffffff',
+                  borderTopColor: '#f0f0f0',
+                  boxShadow: '0px -2px 4px rgba(0, 0, 0, 0.1)',
+                  height: Platform.OS === 'ios' ? 83 : 70,
+                  paddingBottom: Platform.OS === 'ios' ? 25 : 12,
                 },
           }}
         />

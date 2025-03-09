@@ -6,6 +6,7 @@ import {
   Pressable,
   TextInput,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
 import { supabase } from '@/lib/supabase';
@@ -15,8 +16,11 @@ import {
   CreditCard as Edit2,
   Trash2,
   CircleAlert as AlertCircle,
+  ArrowLeft,
+  Store as StoreIcon,
 } from 'lucide-react-native';
 import { useAuth } from '@/hooks/useAuth';
+import { createBoxShadow } from '@/utils/styles';
 
 // Define a type for categories
 type Category = {
@@ -596,11 +600,7 @@ const styles = StyleSheet.create({
     margin: 20,
     padding: 20,
     borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    ...createBoxShadow(0, 2, 4, 0.1),
   },
   formTitle: {
     fontSize: 18,
@@ -732,11 +732,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 8,
     marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 1,
+    ...createBoxShadow(0, 1, 2, 0.1),
   },
   storeInfo: {
     flex: 1,
