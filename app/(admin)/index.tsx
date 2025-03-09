@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
 import { router } from 'expo-router';
-import { Building2, Store, Tag } from 'lucide-react-native';
-import AdminTabBar from '@/components/AdminTabBar';
+import { Building2, Store, Tag, ArrowLeft } from 'lucide-react-native';
+import { StatusBar } from 'expo-status-bar';
 
 export default function AdminScreen() {
   const menuItems = [
@@ -27,9 +27,16 @@ export default function AdminScreen() {
 
   return (
     <View style={styles.container}>
+      <StatusBar style="dark" />
+      <View style={styles.header}>
+        <Pressable onPress={() => router.back()} style={styles.backButton}>
+          <ArrowLeft size={24} color="#1a1a1a" />
+        </Pressable>
+        <Text style={styles.headerTitle}>Panel de Administración</Text>
+      </View>
+
       <ScrollView style={styles.scrollContainer}>
         <View style={styles.content}>
-          <Text style={styles.title}>Panel de Administración</Text>
           <Text style={styles.subtitle}>Gestiona tu centro comercial</Text>
 
           <View style={styles.grid}>
@@ -47,8 +54,6 @@ export default function AdminScreen() {
           </View>
         </View>
       </ScrollView>
-
-      <AdminTabBar />
     </View>
   );
 }
@@ -58,23 +63,33 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f8f9fa',
   },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingTop: 60,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
+    backgroundColor: '#ffffff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  backButton: {
+    marginRight: 16,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#1a1a1a',
+  },
   scrollContainer: {
     flex: 1,
   },
   content: {
     padding: 20,
-    paddingBottom: 100, // Add extra padding to account for the tab bar
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: '#1a1a1a',
-    marginTop: 20,
   },
   subtitle: {
     fontSize: 16,
     color: '#666666',
-    marginTop: 4,
     marginBottom: 24,
   },
   grid: {
@@ -87,8 +102,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderRadius: 12,
     padding: 20,
-    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.1)',
-    marginBottom: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+    marginBottom: 16,
   },
   cardTitle: {
     fontSize: 18,

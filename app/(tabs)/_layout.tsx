@@ -49,15 +49,6 @@ export default function TabLayout() {
       },
     ];
 
-    // Add Admin tab for admin users
-    if (isAdmin) {
-      defaultTabs.push({
-        name: 'admin',
-        title: 'Admin',
-        iconName: 'settings-outline',
-      });
-    }
-
     return defaultTabs;
   }, [isAdmin]);
 

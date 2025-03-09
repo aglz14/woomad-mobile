@@ -2,14 +2,7 @@ import { Stack } from 'expo-router';
 import { useAuth } from '@/hooks/useAuth';
 import { router } from 'expo-router';
 import { useEffect } from 'react';
-import {
-  View,
-  Text,
-  ActivityIndicator,
-  StyleSheet,
-  TouchableOpacity,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 
 export default function AdminLayout() {
   const { isAdmin, isLoading } = useAuth();
@@ -48,21 +41,13 @@ export default function AdminLayout() {
         contentStyle: {
           backgroundColor: '#f8f9fa',
         },
-        headerRight: () => (
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.push('/(tabs)')}
-          >
-            <Ionicons name="home-outline" size={24} color="#FF4B4B" />
-          </TouchableOpacity>
-        ),
       }}
     >
       <Stack.Screen
         name="index"
         options={{
           title: 'Panel de Administración',
-          headerShown: true,
+          headerShown: false,
         }}
       />
       <Stack.Screen
@@ -107,8 +92,5 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#FF4B4B',
     fontWeight: '500',
-  },
-  backButton: {
-    marginRight: 15,
   },
 });

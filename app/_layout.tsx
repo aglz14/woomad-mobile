@@ -25,7 +25,13 @@ export default function RootLayout() {
         ) : (
           <Stack.Screen name="auth" />
         )}
-        <Stack.Screen name="(admin)" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="(admin)"
+          options={{
+            headerShown: false,
+            presentation: 'modal',
+          }}
+        />
         <Stack.Screen
           name="notifications"
           options={{
