@@ -24,7 +24,6 @@ type StoreDetails = {
   id: string;
   name: string;
   description: string;
-  category: string;
   floor: string;
   local_number: string;
   phone: string;
@@ -66,7 +65,6 @@ export default function StoreDetailsScreen() {
           id,
           name,
           description,
-          category,
           floor,
           local_number,
           phone,
@@ -99,7 +97,6 @@ export default function StoreDetailsScreen() {
         id: storeData.id,
         name: storeData.name,
         description: storeData.description || '',
-        category: storeData.category || '',
         floor: storeData.floor || '',
         local_number: storeData.local_number || '',
         phone: storeData.phone || '',
@@ -184,13 +181,6 @@ export default function StoreDetailsScreen() {
             <Text style={styles.sectionTitle}>Información</Text>
 
             <View style={styles.details}>
-              {store.category && (
-                <View style={styles.detailRow}>
-                  <Tag size={20} color="#666666" />
-                  <Text style={styles.detailText}>{store.category}</Text>
-                </View>
-              )}
-
               {store.floor && (
                 <View style={styles.detailRow}>
                   <MapPin size={20} color="#666666" />
