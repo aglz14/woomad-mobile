@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Session } from '@supabase/supabase-js';
+import { router } from 'expo-router';
 
 type UserRole = 'admin' | 'user';
 
@@ -21,15 +22,17 @@ export function useAuth() {
     try {
       setIsLoading(true);
       // First try to get the current session
-      const { data: { session: currentSession } } = await supabase.auth.getSession();
-      
+      const {
+        data: { session: currentSession },
+      } = await supabase.auth.getSession();
+
       // If there's no session, just reset the auth state
       if (!currentSession) {
         resetAuthState();
         router.replace('/auth/login');
         return;
       }
-      
+
       // If we have a session, try to sign out
       try {
         const { error } = await supabase.auth.signOut();
@@ -38,7 +41,7 @@ export function useAuth() {
         console.error('Error in signOut:', signOutError);
         // Even if sign out fails, we'll reset the local state
       }
-      
+
       resetAuthState();
       router.replace('/auth/login');
     } catch (error) {
@@ -51,15 +54,18 @@ export function useAuth() {
     }
   }
 
-  const handleAuthStateChange = async (event: string, session: Session | null) => {
-    if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED' && !session) {
+  const handleAuthStateChange = async (
+    event: string,
+    session: Session | null
+  ) => {
+    if (event === 'SIGNED_OUT' || (event === 'TOKEN_REFRESHED' && !session)) {
       resetAuthState();
       setIsLoading(false);
       return;
     }
 
     setSession(session);
-    
+
     if (session?.user) {
       try {
         const { data: profile, error: profileError } = await supabase
@@ -94,12 +100,14 @@ export function useAuth() {
 
   useEffect(() => {
     checkUser();
-    
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
       console.log('Auth state changed:', event);
       handleAuthStateChange(event, session);
     });
-    
+
     return () => {
       subscription.unsubscribe();
     };
@@ -108,18 +116,22 @@ export function useAuth() {
   async function checkUser() {
     try {
       setIsLoading(true);
-      const { 
-        data: { session: currentSession }, 
-        error: sessionError 
+      const {
+        data: { session: currentSession },
+        error: sessionError,
       } = await supabase.auth.getSession();
-      
-      if (sessionError && sessionError.message !== 'Invalid Refresh Token: Refresh Token Not Found') {
+
+      if (
+        sessionError &&
+        sessionError.message !==
+          'Invalid Refresh Token: Refresh Token Not Found'
+      ) {
         console.error('Session error:', sessionError);
         resetAuthState();
         setIsLoading(false);
         return;
       }
-      
+
       if (currentSession) {
         await handleAuthStateChange('INITIAL_SESSION', currentSession);
       } else {
