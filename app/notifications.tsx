@@ -14,7 +14,13 @@ type UserPreferences = {
 
 export default function NotificationsScreen() {
   const { session } = useAuth();
-  const { isEnabled, registerForPushNotificationsAsync } = useNotifications();
+  const { 
+    isEnabled, 
+    hasPermission, 
+    userPreference, 
+    registerForPushNotificationsAsync,
+    fetchUserPreferences 
+  } = useNotifications();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [preferences, setPreferences] = useState<UserPreferences>({
@@ -26,8 +32,17 @@ export default function NotificationsScreen() {
   useEffect(() => {
     if (session?.user?.id) {
       fetchUserPreferences();
+      fetchUserPreferences();
     }
   }, [session?.user?.id]);
+
+  // Update local preferences when userPreference changes
+  useEffect(() => {
+    setPreferences(prev => ({
+      ...prev,
+      notifications_enabled: userPreference
+    }));
+  }, [userPreference]);
 
   // Don't fetch preferences if there's no user ID
   useEffect(() => {
@@ -122,9 +137,13 @@ export default function NotificationsScreen() {
       
       setPreferences(newPreferences);
       
-      if (updates.notifications_enabled && !isEnabled) {
+      // Request permission if enabling notifications and don't have permission
+      if (updates.notifications_enabled && !hasPermission) {
         await registerForPushNotificationsAsync();
       }
+      
+      // Refresh the notification state in the hook
+      fetchUserPreferences();
     } catch (error) {
       console.error('Error updating preferences:', error);
       setError('No se pudieron guardar los cambios. Por favor, intenta de nuevo.');

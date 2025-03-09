@@ -6,6 +6,7 @@ import * as BackgroundFetch from 'expo-background-fetch';
 import * as Location from 'expo-location';
 import { supabase } from '@/lib/supabase';
 import { router } from 'expo-router';
+import { useAuth } from '@/hooks/useAuth';
 
 const BACKGROUND_FETCH_TASK = 'BACKGROUND_LOCATION_TASK';
 const NOTIFICATION_DISTANCE = 50; // Maximum distance in kilometers
@@ -24,7 +25,7 @@ TaskManager.defineTask(BACKGROUND_FETCH_TASK, async () => {
   try {
     // Get current location
     const location = await Location.getCurrentPositionAsync();
-    
+
     // Get all malls from the database
     const { data: malls, error } = await supabase
       .from('shopping_malls')
@@ -62,25 +63,35 @@ TaskManager.defineTask(BACKGROUND_FETCH_TASK, async () => {
 });
 
 // Calculate distance between two points using Haversine formula
-function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+function calculateDistance(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number
+): number {
   const R = 6371; // Earth's radius in kilometers
   const dLat = (lat2 - lat1) * (Math.PI / 180);
   const dLon = (lon2 - lon1) * (Math.PI / 180);
-  const a = 
-    Math.sin(dLat/2) * Math.sin(dLat/2) +
-    Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * 
-    Math.sin(dLon/2) * Math.sin(dLon/2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * (Math.PI / 180)) *
+      Math.cos(lat2 * (Math.PI / 180)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 }
 
 export function useNotifications() {
   const [isEnabled, setIsEnabled] = useState(false);
+  const [hasPermission, setHasPermission] = useState(false);
+  const [userPreference, setUserPreference] = useState(false);
+  const { session } = useAuth();
   const notificationListener = useRef<any>();
   const responseListener = useRef<any>();
 
   useEffect(() => {
-    registerForPushNotificationsAsync();
+    checkNotificationPermission();
     setupNotificationListeners();
     setupBackgroundTask();
 
@@ -88,6 +99,63 @@ export function useNotifications() {
       cleanup();
     };
   }, []);
+
+  useEffect(() => {
+    if (session?.user?.id) {
+      fetchUserPreferences();
+    }
+  }, [session?.user?.id]);
+
+  // Update isEnabled whenever either permission or user preference changes
+  useEffect(() => {
+    setIsEnabled(hasPermission && userPreference);
+  }, [hasPermission, userPreference]);
+
+  async function fetchUserPreferences() {
+    try {
+      if (!session?.user?.id) {
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('user_preferences')
+        .select('notifications_enabled')
+        .eq('user_id', session.user.id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error fetching notification preferences:', error);
+        return;
+      }
+
+      // If we have data, update the user preference
+      if (data) {
+        setUserPreference(data.notifications_enabled);
+      } else {
+        // Default to false if no preferences found
+        setUserPreference(false);
+      }
+    } catch (error) {
+      console.error('Error in fetchUserPreferences:', error);
+    }
+  }
+
+  async function checkNotificationPermission() {
+    try {
+      // Only proceed on native platforms
+      if (Platform.OS === 'web') {
+        console.log('Push notifications are not supported on web');
+        return;
+      }
+
+      const { status: existingStatus } =
+        await Notifications.getPermissionsAsync();
+      setHasPermission(existingStatus === 'granted');
+    } catch (error) {
+      console.error('Error checking notification permission:', error);
+      setHasPermission(false);
+    }
+  }
 
   async function registerForPushNotificationsAsync() {
     try {
@@ -97,22 +165,32 @@ export function useNotifications() {
         return;
       }
 
-      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      const { status: existingStatus } =
+        await Notifications.getPermissionsAsync();
       let finalStatus = existingStatus;
-      
+
       if (existingStatus !== 'granted') {
         const { status } = await Notifications.requestPermissionsAsync();
         finalStatus = status;
       }
-      
+
       if (finalStatus !== 'granted') {
         throw new Error('Permission not granted');
       }
 
-      setIsEnabled(true);
+      setHasPermission(true);
+
+      // Also update the user preference in the database
+      if (session?.user?.id) {
+        await supabase.from('user_preferences').upsert({
+          user_id: session.user.id,
+          notifications_enabled: true,
+        });
+        setUserPreference(true);
+      }
     } catch (error) {
       console.error('Error registering for notifications:', error);
-      setIsEnabled(false);
+      setHasPermission(false);
     }
   }
 
@@ -141,17 +219,19 @@ export function useNotifications() {
     }
 
     // Handle received notifications
-    notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
-      console.log('Notification received:', notification);
-    });
+    notificationListener.current =
+      Notifications.addNotificationReceivedListener((notification) => {
+        console.log('Notification received:', notification);
+      });
 
     // Handle notification responses
-    responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
-      const mallId = response.notification.request.content.data?.mallId;
-      if (mallId) {
-        router.push(`/center_details/${mallId}`);
-      }
-    });
+    responseListener.current =
+      Notifications.addNotificationResponseReceivedListener((response) => {
+        const mallId = response.notification.request.content.data?.mallId;
+        if (mallId) {
+          router.push(`/center_details/${mallId}`);
+        }
+      });
   }
 
   function cleanup() {
@@ -160,7 +240,9 @@ export function useNotifications() {
     }
 
     if (notificationListener.current) {
-      Notifications.removeNotificationSubscription(notificationListener.current);
+      Notifications.removeNotificationSubscription(
+        notificationListener.current
+      );
     }
     if (responseListener.current) {
       Notifications.removeNotificationSubscription(responseListener.current);
@@ -169,6 +251,9 @@ export function useNotifications() {
 
   return {
     isEnabled,
+    hasPermission,
+    userPreference,
     registerForPushNotificationsAsync,
+    fetchUserPreferences,
   };
 }

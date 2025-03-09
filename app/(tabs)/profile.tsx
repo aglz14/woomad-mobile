@@ -15,8 +15,13 @@ import { useState, useEffect } from 'react';
 
 export default function ProfileScreen() {
   const { session, signOut, isAdmin } = useAuth();
-  const { isEnabled, registerForPushNotificationsAsync } = useNotifications();
+  const { isEnabled, fetchUserPreferences } = useNotifications();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  // Fetch notification preferences when the component mounts
+  useEffect(() => {
+    fetchUserPreferences();
+  }, []);
 
   async function handleLogout() {
     try {
