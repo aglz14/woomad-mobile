@@ -7,6 +7,11 @@ import * as Location from 'expo-location';
 import { supabase } from '@/lib/supabase';
 import { router } from 'expo-router';
 import { useAuth } from '@/hooks/useAuth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// Storage keys for local preferences
+const NOTIFICATION_ENABLED_KEY = 'woomad_notification_enabled';
+const NOTIFICATION_RADIUS_KEY = 'woomad_notification_radius';
 
 const BACKGROUND_FETCH_TASK = 'BACKGROUND_LOCATION_TASK';
 const DEFAULT_NOTIFICATION_DISTANCE = 4; // Default maximum distance in kilometers
@@ -35,6 +40,7 @@ TaskManager.defineTask(BACKGROUND_FETCH_TASK, async () => {
 
     // Get user preferences for notification radius
     let notificationRadius = DEFAULT_NOTIFICATION_DISTANCE;
+    let notificationsEnabled = false;
 
     try {
       // Try to get the user's session
@@ -43,7 +49,7 @@ TaskManager.defineTask(BACKGROUND_FETCH_TASK, async () => {
       } = await supabase.auth.getSession();
 
       if (session?.user?.id) {
-        // Get user's notification preferences
+        // Get authenticated user's notification preferences from database
         const { data: preferences } = await supabase
           .from('user_preferences')
           .select('notification_radius, notifications_enabled')
@@ -58,6 +64,26 @@ TaskManager.defineTask(BACKGROUND_FETCH_TASK, async () => {
         // Use user's preferred radius if available
         if (preferences?.notification_radius) {
           notificationRadius = preferences.notification_radius;
+        }
+        notificationsEnabled = preferences?.notifications_enabled || false;
+      } else {
+        // For non-authenticated users, get preferences from AsyncStorage
+        const storedEnabled = await AsyncStorage.getItem(
+          NOTIFICATION_ENABLED_KEY
+        );
+        const storedRadius = await AsyncStorage.getItem(
+          NOTIFICATION_RADIUS_KEY
+        );
+
+        notificationsEnabled = storedEnabled === 'true';
+
+        // Only proceed if notifications are enabled
+        if (!notificationsEnabled) {
+          return BackgroundFetch.BackgroundFetchResult.NoData;
+        }
+
+        if (storedRadius) {
+          notificationRadius = parseFloat(storedRadius);
         }
       }
     } catch (err) {
@@ -119,13 +145,18 @@ function calculateDistance(
 export function useNotifications() {
   const [isEnabled, setIsEnabled] = useState(false);
   const [hasPermission, setHasPermission] = useState(false);
+  const [hasLocationPermission, setHasLocationPermission] = useState(false);
   const [userPreference, setUserPreference] = useState(false);
+  const [notificationRadius, setNotificationRadius] = useState(
+    DEFAULT_NOTIFICATION_DISTANCE
+  );
   const { session } = useAuth();
   const notificationListener = useRef<any>();
   const responseListener = useRef<any>();
 
   useEffect(() => {
     checkNotificationPermission();
+    checkLocationPermission();
     setupNotificationListeners();
     setupBackgroundTask();
 
@@ -139,27 +170,50 @@ export function useNotifications() {
       // For authenticated users, fetch preferences from database
       fetchUserPreferences();
     } else {
-      // For unauthenticated users, use default preference (false)
-      setUserPreference(false);
+      // For unauthenticated users, fetch preferences from AsyncStorage
+      fetchLocalPreferences();
     }
   }, [session?.user?.id]);
 
-  // Update isEnabled whenever either permission or user preference changes
+  // Update isEnabled whenever permissions or user preference changes
   useEffect(() => {
-    setIsEnabled(hasPermission && userPreference);
-  }, [hasPermission, userPreference]);
+    setIsEnabled(hasPermission && hasLocationPermission && userPreference);
+  }, [hasPermission, hasLocationPermission, userPreference]);
+
+  async function fetchLocalPreferences() {
+    try {
+      const storedEnabled = await AsyncStorage.getItem(
+        NOTIFICATION_ENABLED_KEY
+      );
+      const storedRadius = await AsyncStorage.getItem(NOTIFICATION_RADIUS_KEY);
+
+      // Set user preference from AsyncStorage or default to false
+      setUserPreference(storedEnabled === 'true');
+
+      // Set notification radius from AsyncStorage or default
+      if (storedRadius) {
+        setNotificationRadius(parseFloat(storedRadius));
+      } else {
+        setNotificationRadius(DEFAULT_NOTIFICATION_DISTANCE);
+      }
+    } catch (error) {
+      console.error('Error fetching local preferences:', error);
+      setUserPreference(false);
+      setNotificationRadius(DEFAULT_NOTIFICATION_DISTANCE);
+    }
+  }
 
   async function fetchUserPreferences() {
     try {
       if (!session?.user?.id) {
-        // For unauthenticated users, use default preference
-        setUserPreference(false);
+        // For unauthenticated users, use local storage
+        fetchLocalPreferences();
         return;
       }
 
       const { data, error } = await supabase
         .from('user_preferences')
-        .select('notifications_enabled')
+        .select('notifications_enabled, notification_radius')
         .eq('user_id', session.user.id)
         .single();
 
@@ -171,14 +225,19 @@ export function useNotifications() {
       // If we have data, update the user preference
       if (data) {
         setUserPreference(data.notifications_enabled);
+        setNotificationRadius(
+          data.notification_radius || DEFAULT_NOTIFICATION_DISTANCE
+        );
       } else {
         // Default to false if no preferences found
         setUserPreference(false);
+        setNotificationRadius(DEFAULT_NOTIFICATION_DISTANCE);
       }
     } catch (error) {
       console.error('Error in fetchUserPreferences:', error);
       // Default to false on error
       setUserPreference(false);
+      setNotificationRadius(DEFAULT_NOTIFICATION_DISTANCE);
     }
   }
 
@@ -199,6 +258,57 @@ export function useNotifications() {
     }
   }
 
+  async function checkLocationPermission() {
+    try {
+      // Only proceed on native platforms
+      if (Platform.OS === 'web') {
+        console.log('Location permissions are not supported on web');
+        return;
+      }
+
+      const { status: existingStatus } =
+        await Location.getForegroundPermissionsAsync();
+      setHasLocationPermission(existingStatus === 'granted');
+    } catch (error) {
+      console.error('Error checking location permission:', error);
+      setHasLocationPermission(false);
+    }
+  }
+
+  async function requestLocationPermission() {
+    try {
+      // Only proceed on native platforms
+      if (Platform.OS === 'web') {
+        console.log('Location permissions are not supported on web');
+        return;
+      }
+
+      const { status: existingStatus } =
+        await Location.getForegroundPermissionsAsync();
+      let finalStatus = existingStatus;
+
+      if (existingStatus !== 'granted') {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        finalStatus = status;
+      }
+
+      if (finalStatus !== 'granted') {
+        throw new Error('Location permission not granted');
+      }
+
+      // Also request background location permission for better notification experience
+      const { status: backgroundStatus } =
+        await Location.requestBackgroundPermissionsAsync();
+
+      setHasLocationPermission(true);
+      return true;
+    } catch (error) {
+      console.error('Error requesting location permission:', error);
+      setHasLocationPermission(false);
+      return false;
+    }
+  }
+
   async function registerForPushNotificationsAsync() {
     try {
       // Only proceed on native platforms
@@ -207,6 +317,13 @@ export function useNotifications() {
         return;
       }
 
+      // First request location permission
+      const locationGranted = await requestLocationPermission();
+      if (!locationGranted) {
+        throw new Error('Location permission is required for notifications');
+      }
+
+      // Then request notification permission
       const { status: existingStatus } =
         await Notifications.getPermissionsAsync();
       let finalStatus = existingStatus;
@@ -217,25 +334,48 @@ export function useNotifications() {
       }
 
       if (finalStatus !== 'granted') {
-        throw new Error('Permission not granted');
+        throw new Error('Notification permission not granted');
       }
 
       setHasPermission(true);
 
-      // Also update the user preference in the database if user is authenticated
+      // Update preferences based on authentication status
       if (session?.user?.id) {
+        // For authenticated users, update the database
         await supabase.from('user_preferences').upsert({
           user_id: session.user.id,
           notifications_enabled: true,
+          notification_radius: notificationRadius,
         });
         setUserPreference(true);
       } else {
-        // For unauthenticated users, just update the local state
+        // For unauthenticated users, update AsyncStorage
+        await AsyncStorage.setItem(NOTIFICATION_ENABLED_KEY, 'true');
+        await AsyncStorage.setItem(
+          NOTIFICATION_RADIUS_KEY,
+          notificationRadius.toString()
+        );
         setUserPreference(true);
       }
     } catch (error) {
       console.error('Error registering for notifications:', error);
       setHasPermission(false);
+      return false;
+    }
+  }
+
+  async function updateLocalPreferences(
+    enabled: boolean,
+    radius: number = DEFAULT_NOTIFICATION_DISTANCE
+  ) {
+    try {
+      await AsyncStorage.setItem(NOTIFICATION_ENABLED_KEY, enabled.toString());
+      await AsyncStorage.setItem(NOTIFICATION_RADIUS_KEY, radius.toString());
+
+      setUserPreference(enabled);
+      setNotificationRadius(radius);
+    } catch (error) {
+      console.error('Error updating local preferences:', error);
     }
   }
 
@@ -298,8 +438,12 @@ export function useNotifications() {
   return {
     isEnabled,
     hasPermission,
+    hasLocationPermission,
     userPreference,
+    notificationRadius,
     registerForPushNotificationsAsync,
+    requestLocationPermission,
     fetchUserPreferences,
+    updateLocalPreferences,
   };
 }

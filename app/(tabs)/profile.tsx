@@ -5,6 +5,8 @@ import {
   Image,
   Pressable,
   ScrollView,
+  Switch,
+  Platform,
 } from 'react-native';
 import { Bell, Settings, ChevronRight, User, Plus } from 'lucide-react-native';
 import { router } from 'expo-router';
@@ -12,6 +14,75 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useState, useEffect } from 'react';
+
+// Component for guest users to manage notification preferences
+function GuestNotificationPreferences() {
+  const {
+    isEnabled,
+    hasPermission,
+    hasLocationPermission,
+    userPreference,
+    notificationRadius,
+    registerForPushNotificationsAsync,
+    requestLocationPermission,
+    updateLocalPreferences,
+  } = useNotifications();
+
+  const [loading, setLoading] = useState(false);
+
+  async function handleToggleNotifications(value: boolean) {
+    setLoading(true);
+    try {
+      if (value) {
+        // If enabling notifications, request permissions and register
+        await registerForPushNotificationsAsync();
+      } else {
+        // If disabling notifications, just update local storage
+        await updateLocalPreferences(false, notificationRadius);
+      }
+    } catch (error) {
+      console.error('Error toggling notifications:', error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <View style={styles.guestNotificationSection}>
+      <Text style={styles.guestNotificationTitle}>Notificaciones</Text>
+
+      <View style={styles.guestNotificationItem}>
+        <View style={styles.guestNotificationInfo}>
+          <Text style={styles.guestNotificationLabel}>
+            Notificaciones de centros comerciales cercanos
+          </Text>
+          <Text style={styles.guestNotificationDescription}>
+            Recibe alertas cuando estés cerca de un centro comercial (4 km)
+          </Text>
+        </View>
+        <Switch
+          value={isEnabled}
+          onValueChange={handleToggleNotifications}
+          trackColor={{ false: '#e9ecef', true: '#FF4B4B' }}
+          disabled={loading}
+        />
+      </View>
+
+      {(!hasPermission || !hasLocationPermission) && (
+        <Text style={styles.guestPermissionNote}>
+          Se requieren permisos de ubicación y notificaciones para esta función
+        </Text>
+      )}
+
+      {isEnabled && (
+        <Text style={styles.guestNotificationSuccess}>
+          ¡Notificaciones activadas! Recibirás alertas cuando estés cerca de
+          centros comerciales.
+        </Text>
+      )}
+    </View>
+  );
+}
 
 export default function ProfileScreen() {
   const { session, signOut, isAdmin } = useAuth();
@@ -49,7 +120,7 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        <View style={styles.guestContent}>
+        <ScrollView style={styles.guestContent}>
           <Pressable
             style={styles.authButton}
             onPress={() => router.push('/auth/login')}
@@ -66,14 +137,17 @@ export default function ProfileScreen() {
             <Text style={styles.authButtonText}>Crear Cuenta</Text>
           </Pressable>
 
+          {/* Add notification preferences for guest users */}
+          <GuestNotificationPreferences />
+
           <View style={styles.guestInfoContainer}>
             <Text style={styles.guestInfoTitle}>¿Por qué iniciar sesión?</Text>
             <Text style={styles.guestInfoText}>
-              • Recibe notificaciones de promociones cercanas{'\n'}• Guarda tus
-              centros comerciales favoritos{'\n'}• Personaliza tu experiencia
+              • Recibe notificaciones personalizadas{'\n'}• Guarda tus centros
+              comerciales favoritos{'\n'}• Personaliza tu experiencia
             </Text>
           </View>
-        </View>
+        </ScrollView>
       </View>
     );
   }
@@ -302,5 +376,56 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666666',
     lineHeight: 22,
+  },
+  guestNotificationSection: {
+    marginTop: 20,
+    padding: 20,
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    marginHorizontal: 16,
+  },
+  guestNotificationTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1a1a1a',
+    marginBottom: 16,
+  },
+  guestNotificationItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  guestNotificationInfo: {
+    flex: 1,
+    marginRight: 12,
+  },
+  guestNotificationLabel: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#1a1a1a',
+    marginBottom: 4,
+  },
+  guestNotificationDescription: {
+    fontSize: 14,
+    color: '#666666',
+    lineHeight: 20,
+  },
+  guestPermissionNote: {
+    fontSize: 14,
+    color: '#FF4B4B',
+    marginTop: 8,
+    lineHeight: 20,
+  },
+  guestNotificationSuccess: {
+    fontSize: 14,
+    color: '#28a745',
+    marginTop: 12,
+    lineHeight: 20,
+    backgroundColor: '#e8f5e9',
+    padding: 10,
+    borderRadius: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: '#28a745',
   },
 });
