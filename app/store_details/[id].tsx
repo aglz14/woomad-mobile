@@ -195,8 +195,9 @@ export default function StoreDetailsScreen() {
                 <View style={styles.detailRow}>
                   <MapPin size={20} color="#666666" />
                   <Text style={styles.detailText}>
-                    {store.floor && `Piso ${store.floor}`}{' '}
-                    {store.local_number && `Local ${store.local_number}`}
+                    {store.floor ? `Piso ${store.floor}` : ''}
+                    {store.floor && store.local_number ? ' ' : ''}
+                    {store.local_number ? `Local ${store.local_number}` : ''}
                   </Text>
                 </View>
               )}
