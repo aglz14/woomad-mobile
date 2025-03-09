@@ -296,7 +296,7 @@ export default function CenterDetailsScreen() {
                       <View style={styles.detailItem}>
                         <MapPin size={14} color="#666666" />
                         <Text style={styles.detailText}>
-                          {store.floor && `Floor ${store.floor}`}{' '}
+                          {store.floor && `Piso ${store.floor}`}{' '}
                           {store.local_number && `Local ${store.local_number}`}
                         </Text>
                       </View>
