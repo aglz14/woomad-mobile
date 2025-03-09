@@ -8,7 +8,16 @@ import {
   Switch,
   Platform,
 } from 'react-native';
-import { Bell, Settings, ChevronRight, User, Plus } from 'lucide-react-native';
+import {
+  Bell,
+  Settings,
+  ChevronRight,
+  User,
+  Plus,
+  LogIn,
+  UserPlus,
+  Info,
+} from 'lucide-react-native';
 import { router } from 'expo-router';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
@@ -114,7 +123,7 @@ export default function ProfileScreen() {
 
     return (
       <View style={styles.container}>
-        <View style={styles.header}>
+        <View style={styles.guestHeader}>
           <View style={styles.headerContent}>
             <Text style={styles.title}>Mi Perfil</Text>
             <Text style={styles.subtitle}>
@@ -127,31 +136,52 @@ export default function ProfileScreen() {
           style={styles.guestContentScroll}
           contentContainerStyle={styles.guestContentContainer}
         >
-          <Pressable
-            style={styles.authButton}
-            onPress={() => router.push('/auth/login')}
-          >
-            <User size={24} color="#ffffff" />
-            <Text style={styles.authButtonText}>Iniciar Sesión</Text>
-          </Pressable>
+          <View style={styles.authButtonsContainer}>
+            <Pressable
+              style={styles.authButton}
+              onPress={() => router.push('/auth/login')}
+            >
+              <LogIn size={22} color="#ffffff" />
+              <Text style={styles.authButtonText}>Iniciar Sesión</Text>
+            </Pressable>
 
-          <Pressable
-            style={[styles.authButton, styles.signupButton]}
-            onPress={() => router.push('/auth/signup')}
-          >
-            <Plus size={24} color="#ffffff" />
-            <Text style={styles.authButtonText}>Crear Cuenta</Text>
-          </Pressable>
+            <Pressable
+              style={[styles.authButton, styles.signupButton]}
+              onPress={() => router.push('/auth/signup')}
+            >
+              <UserPlus size={22} color="#ffffff" />
+              <Text style={styles.authButtonText}>Crear Cuenta</Text>
+            </Pressable>
+          </View>
 
           {/* Add notification preferences for guest users */}
           {Platform.OS !== 'web' && <GuestNotificationPreferences />}
 
           <View style={styles.guestInfoContainer}>
-            <Text style={styles.guestInfoTitle}>¿Por qué iniciar sesión?</Text>
-            <Text style={styles.guestInfoText}>
-              • Recibe notificaciones personalizadas{'\n'}• Guarda tus centros
-              comerciales favoritos{'\n'}• Personaliza tu experiencia
-            </Text>
+            <View style={styles.guestInfoHeader}>
+              <Info size={20} color="#1a1a1a" />
+              <Text style={styles.guestInfoTitle}>
+                ¿Por qué iniciar sesión?
+              </Text>
+            </View>
+            <View style={styles.guestInfoItem}>
+              <Text style={styles.guestInfoBullet}>•</Text>
+              <Text style={styles.guestInfoText}>
+                Recibe notificaciones personalizadas de promociones
+              </Text>
+            </View>
+            <View style={styles.guestInfoItem}>
+              <Text style={styles.guestInfoBullet}>•</Text>
+              <Text style={styles.guestInfoText}>
+                Guarda tus centros comerciales favoritos
+              </Text>
+            </View>
+            <View style={styles.guestInfoItem}>
+              <Text style={styles.guestInfoBullet}>•</Text>
+              <Text style={styles.guestInfoText}>
+                Personaliza tu experiencia en la aplicación
+              </Text>
+            </View>
           </View>
         </ContentContainer>
       </View>
@@ -268,6 +298,15 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
   },
+  guestHeader: {
+    padding: 20,
+    paddingTop: 60,
+    paddingBottom: 24,
+    backgroundColor: '#ffffff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+    marginBottom: 16,
+  },
   headerContent: {
     marginBottom: 16,
   },
@@ -275,11 +314,13 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: '700',
     color: '#1a1a1a',
+    marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
     color: '#666666',
     marginTop: 4,
+    lineHeight: 22,
   },
   userInfo: {
     marginTop: 12,
@@ -354,9 +395,13 @@ const styles = StyleSheet.create({
   },
   guestContentContainer: {
     padding: 20,
-    justifyContent: 'center',
+    paddingTop: 0,
     alignItems: 'center',
     flexGrow: 1,
+  },
+  authButtonsContainer: {
+    width: '100%',
+    marginBottom: 24,
   },
   authButton: {
     backgroundColor: '#FF4B4B',
@@ -367,40 +412,74 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     width: '100%',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   authButtonText: {
     color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',
-    marginLeft: 8,
+    marginLeft: 10,
   },
   signupButton: {
     backgroundColor: '#1a1a1a',
   },
   guestInfoContainer: {
     backgroundColor: '#ffffff',
-    padding: 20,
+    padding: 24,
     borderRadius: 12,
-    marginTop: 20,
+    marginTop: 8,
     width: '100%',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  guestInfoHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
   },
   guestInfoTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#1a1a1a',
+    marginLeft: 8,
+  },
+  guestInfoItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
     marginBottom: 12,
+    paddingLeft: 4,
+  },
+  guestInfoBullet: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FF4B4B',
+    marginRight: 8,
   },
   guestInfoText: {
-    fontSize: 14,
-    color: '#666666',
+    fontSize: 15,
+    color: '#444444',
     lineHeight: 22,
+    flex: 1,
   },
   guestNotificationSection: {
-    marginTop: 20,
-    padding: 20,
+    marginTop: 8,
+    marginBottom: 24,
+    padding: 24,
     backgroundColor: '#ffffff',
     borderRadius: 12,
-    marginHorizontal: 16,
+    width: '100%',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   guestNotificationTitle: {
     fontSize: 18,
@@ -416,7 +495,7 @@ const styles = StyleSheet.create({
   },
   guestNotificationInfo: {
     flex: 1,
-    marginRight: 12,
+    marginRight: 16,
   },
   guestNotificationLabel: {
     fontSize: 16,
@@ -432,8 +511,13 @@ const styles = StyleSheet.create({
   guestPermissionNote: {
     fontSize: 14,
     color: '#FF4B4B',
-    marginTop: 8,
+    marginTop: 12,
     lineHeight: 20,
+    backgroundColor: '#FFF5F5',
+    padding: 12,
+    borderRadius: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: '#FF4B4B',
   },
   guestNotificationSuccess: {
     fontSize: 14,
@@ -441,7 +525,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
     lineHeight: 20,
     backgroundColor: '#e8f5e9',
-    padding: 10,
+    padding: 12,
     borderRadius: 8,
     borderLeftWidth: 3,
     borderLeftColor: '#28a745',
