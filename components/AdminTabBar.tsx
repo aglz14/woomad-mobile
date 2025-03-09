@@ -112,8 +112,8 @@ const styles = StyleSheet.create({
   tabBar: {
     flexDirection: 'row',
     backgroundColor: '#ffffff',
-    borderTopColor: '#f0f0f0',
     borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
     height: Platform.OS === 'ios' ? 83 : 70,
     paddingBottom: Platform.OS === 'ios' ? 25 : 12,
     position: 'absolute',
@@ -122,7 +122,6 @@ const styles = StyleSheet.create({
     right: 0,
     zIndex: 1000,
     boxShadow: '0px -2px 4px rgba(0, 0, 0, 0.1)',
-    pointerEvents: 'auto',
   },
   tabItem: {
     flex: 1,

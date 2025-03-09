@@ -359,7 +359,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-    pointerEvents: 'auto',
   },
   content: {
     flex: 1,
@@ -401,7 +400,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e9ecef',
     marginBottom: 16,
-    pointerEvents: 'auto',
   },
   categoriesScroll: {
     marginHorizontal: -20,
