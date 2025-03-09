@@ -11,10 +11,19 @@
     "platforms": ["ios", "android", "web"],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.woomad.app"
+      "bundleIdentifier": "com.woomad.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Woomad necesita acceso a tu ubicación para mostrarte centros comerciales y promociones cercanas a ti.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Woomad necesita acceso a tu ubicación para enviarte notificaciones sobre centros comerciales y promociones cercanas a ti, incluso cuando la app está en segundo plano."
+      }
     },
     "android": {
-      "package": "com.woomad.app"
+      "package": "com.woomad.app",
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION"
+      ]
     },
     "web": {
       "bundler": "metro",
