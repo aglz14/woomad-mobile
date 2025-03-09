@@ -1,4 +1,13 @@
-import { View, Text, StyleSheet, Switch, Pressable, ActivityIndicator, ScrollView, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Switch,
+  Pressable,
+  ActivityIndicator,
+  ScrollView,
+  Platform,
+} from 'react-native';
 import Slider from '@react-native-community/slider';
 import { useNotifications } from '@/hooks/useNotifications';
 import { supabase } from '@/lib/supabase';
@@ -14,12 +23,12 @@ type UserPreferences = {
 
 export default function NotificationsScreen() {
   const { session } = useAuth();
-  const { 
-    isEnabled, 
-    hasPermission, 
-    userPreference, 
+  const {
+    isEnabled,
+    hasPermission,
+    userPreference,
     registerForPushNotificationsAsync,
-    fetchUserPreferences 
+    fetchUserPreferences,
   } = useNotifications();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -32,15 +41,15 @@ export default function NotificationsScreen() {
   useEffect(() => {
     if (session?.user?.id) {
       fetchUserPreferences();
-      fetchUserPreferences();
+      fetchUserPreferencesFromDB();
     }
   }, [session?.user?.id]);
 
   // Update local preferences when userPreference changes
   useEffect(() => {
-    setPreferences(prev => ({
+    setPreferences((prev) => ({
       ...prev,
-      notifications_enabled: userPreference
+      notifications_enabled: userPreference,
     }));
   }, [userPreference]);
 
@@ -52,15 +61,15 @@ export default function NotificationsScreen() {
     }
   }, [session]);
 
-  async function fetchUserPreferences() {
+  async function fetchUserPreferencesFromDB() {
     try {
       setLoading(true);
       setError(null);
-      
+
       if (!session?.user?.id) {
         throw new Error('No user ID available');
       }
-      
+
       const { data, error } = await supabase
         .from('user_preferences')
         .select('*')
@@ -106,24 +115,24 @@ export default function NotificationsScreen() {
     try {
       setSaving(true);
       setError(null);
-      
+
       if (!session?.user?.id) {
         throw new Error('No user ID available');
       }
-      
+
       const newPreferences = { ...preferences, ...updates };
-      
+
       // First check if preferences exist
       const { data: existingPrefs, error: checkError } = await supabase
         .from('user_preferences')
         .select('id')
         .eq('user_id', session.user.id)
         .single();
-      
+
       if (checkError && checkError.code !== 'PGRST116') {
         throw checkError;
       }
-      
+
       // Update or insert based on existence
       const { error: upsertError } = await supabase
         .from('user_preferences')
@@ -132,21 +141,23 @@ export default function NotificationsScreen() {
           user_id: session?.user.id,
           ...newPreferences,
         });
-      
+
       if (upsertError) throw upsertError;
-      
+
       setPreferences(newPreferences);
-      
+
       // Request permission if enabling notifications and don't have permission
       if (updates.notifications_enabled && !hasPermission) {
         await registerForPushNotificationsAsync();
       }
-      
+
       // Refresh the notification state in the hook
       fetchUserPreferences();
     } catch (error) {
       console.error('Error updating preferences:', error);
-      setError('No se pudieron guardar los cambios. Por favor, intenta de nuevo.');
+      setError(
+        'No se pudieron guardar los cambios. Por favor, intenta de nuevo.'
+      );
     } finally {
       setSaving(false);
     }
@@ -164,7 +175,10 @@ export default function NotificationsScreen() {
     return (
       <View style={styles.centered}>
         <Text style={styles.errorText}>{error}</Text>
-        <Pressable style={styles.retryButton} onPress={() => router.replace('/auth/login')}>
+        <Pressable
+          style={styles.retryButton}
+          onPress={() => router.replace('/auth/login')}
+        >
           <Text style={styles.retryText}>Volver a iniciar sesión</Text>
         </Pressable>
       </View>
@@ -174,10 +188,11 @@ export default function NotificationsScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Pressable 
-          style={styles.backButton} 
+        <Pressable
+          style={styles.backButton}
           onPress={() => router.back()}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
           <ArrowLeft color="#1a1a1a" size={24} />
         </Pressable>
         <Text style={styles.title}>Notificaciones</Text>
@@ -229,7 +244,11 @@ export default function NotificationsScreen() {
                   max="50"
                   step="1"
                   value={preferences.notification_radius}
-                  onChange={(e) => updatePreferences({ notification_radius: parseInt(e.target.value, 10) })}
+                  onChange={(e) =>
+                    updatePreferences({
+                      notification_radius: parseInt(e.target.value, 10),
+                    })
+                  }
                   style={{
                     width: '100%',
                     marginTop: 16,
@@ -259,9 +278,9 @@ export default function NotificationsScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Información Adicional</Text>
           <Text style={styles.infoText}>
-            Las notificaciones te ayudarán a descubrir centros comerciales cercanos
-            y sus promociones actuales. Mantén las notificaciones activadas para no
-            perderte ninguna oferta.
+            Las notificaciones te ayudarán a descubrir centros comerciales
+            cercanos y sus promociones actuales. Mantén las notificaciones
+            activadas para no perderte ninguna oferta.
           </Text>
         </View>
       </ScrollView>
