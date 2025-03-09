@@ -17,6 +17,7 @@ import {
   CircleAlert as AlertCircle,
 } from 'lucide-react-native';
 import AdminTabBar from '@/components/AdminTabBar';
+import { useAuth } from '@/hooks/useAuth';
 
 // Define a type for categories
 type Category = {
@@ -34,6 +35,7 @@ const defaultFormValues = {
   website: '',
   floor: '',
   local_number: '',
+  user_id: '',
 };
 
 type StoreForm = {
@@ -46,6 +48,7 @@ type StoreForm = {
   website: string;
   floor: string;
   local_number: string;
+  user_id: string;
 };
 
 export default function ManageStoresScreen() {
@@ -55,6 +58,8 @@ export default function ManageStoresScreen() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { session } = useAuth();
+  const userId = session?.user?.id;
 
   const {
     control,
@@ -64,17 +69,22 @@ export default function ManageStoresScreen() {
     watch,
     formState: { errors },
   } = useForm<StoreForm>({
-    defaultValues: defaultFormValues,
+    defaultValues: {
+      ...defaultFormValues,
+      user_id: userId || '',
+    },
   });
 
   // Watch the categories field to update the UI when it changes
   const selectedCategories = watch('categories');
 
   useEffect(() => {
-    fetchStores();
-    fetchMalls();
-    fetchCategories();
-  }, []);
+    if (userId) {
+      fetchStores();
+      fetchMalls();
+      fetchCategories();
+    }
+  }, [userId]);
 
   async function fetchStores() {
     try {
@@ -93,12 +103,14 @@ export default function ManageStoresScreen() {
           website,
           floor,
           local_number,
+          user_id,
           shopping_malls (
             id,
             name
           )
         `
         )
+        .eq('user_id', userId)
         .order('name');
 
       if (error) throw error;
@@ -144,57 +156,57 @@ export default function ManageStoresScreen() {
       setLoading(true);
       setError(null);
 
+      const formattedData = {
+        name: data.name,
+        description: data.description,
+        mall_id: data.mall_id,
+        array_categories: data.categories,
+        image: data.image,
+        phone: data.phone,
+        website: data.website,
+        floor: data.floor,
+        local_number: data.local_number,
+        user_id: userId,
+      };
+
       if (editingId) {
-        // Update existing store
+        // First check if the store belongs to the current user
+        const { data: existingStore, error: fetchError } = await supabase
+          .from('stores')
+          .select('user_id')
+          .eq('id', editingId)
+          .single();
+
+        if (fetchError) throw fetchError;
+
+        if (existingStore.user_id !== userId) {
+          throw new Error('No tienes permiso para editar este negocio');
+        }
+
         const { error: updateError } = await supabase
           .from('stores')
-          .update({
-            name: data.name,
-            description: data.description,
-            mall_id: data.mall_id,
-            image: data.image,
-            phone: data.phone,
-            website: data.website,
-            floor: data.floor,
-            local_number: data.local_number,
-          })
+          .update(formattedData)
           .eq('id', editingId);
 
         if (updateError) throw updateError;
-
-        // Update store categories
-        await updateStoreCategories(editingId, data.categories);
       } else {
-        // Insert new store
-        const { data: newStore, error: insertError } = await supabase
+        const { error: insertError } = await supabase
           .from('stores')
-          .insert({
-            name: data.name,
-            description: data.description,
-            mall_id: data.mall_id,
-            image: data.image,
-            phone: data.phone,
-            website: data.website,
-            floor: data.floor,
-            local_number: data.local_number,
-          })
-          .select('id')
-          .single();
+          .insert(formattedData);
 
         if (insertError) throw insertError;
-
-        // Add store categories
-        if (newStore && data.categories.length > 0) {
-          await updateStoreCategories(newStore.id, data.categories);
-        }
       }
 
-      reset(defaultFormValues);
+      reset({
+        ...defaultFormValues,
+        user_id: userId || '',
+      });
       setEditingId(null);
       await fetchStores();
-    } catch (err) {
+    } catch (err: any) {
       setError(
-        editingId ? 'Error al actualizar negocio' : 'Error al crear negocio'
+        err.message ||
+          (editingId ? 'Error al actualizar negocio' : 'Error al crear negocio')
       );
       console.error('Error saving store:', err);
     } finally {
@@ -202,37 +214,12 @@ export default function ManageStoresScreen() {
     }
   }
 
-  // Helper function to update store categories
-  async function updateStoreCategories(storeId: string, categoryIds: string[]) {
-    try {
-      // First, delete all existing categories for this store
-      const { error: deleteError } = await supabase
-        .from('store_categories')
-        .delete()
-        .eq('store_id', storeId);
-
-      if (deleteError) throw deleteError;
-
-      // Then, insert the new categories
-      if (categoryIds.length > 0) {
-        const categoryRows = categoryIds.map((categoryId) => ({
-          store_id: storeId,
-          category_id: categoryId,
-        }));
-
-        const { error: insertError } = await supabase
-          .from('store_categories')
-          .insert(categoryRows);
-
-        if (insertError) throw insertError;
-      }
-    } catch (err) {
-      console.error('Error updating store categories:', err);
-      throw err;
-    }
-  }
-
   function editStore(store: any) {
+    if (store.user_id !== userId) {
+      setError('No tienes permiso para editar este negocio');
+      return;
+    }
+
     setEditingId(store.id);
     reset({
       name: store.name,
@@ -244,6 +231,7 @@ export default function ManageStoresScreen() {
       website: store.website || '',
       floor: store.floor || '',
       local_number: store.local_number || '',
+      user_id: store.user_id,
     });
   }
 
@@ -251,17 +239,27 @@ export default function ManageStoresScreen() {
     try {
       setLoading(true);
 
-      // Delete store categories first
-      await supabase.from('store_categories').delete().eq('store_id', id);
+      // First check if the store belongs to the current user
+      const { data: store, error: fetchError } = await supabase
+        .from('stores')
+        .select('user_id')
+        .eq('id', id)
+        .single();
 
-      // Then delete the store
+      if (fetchError) throw fetchError;
+
+      if (store.user_id !== userId) {
+        throw new Error('No tienes permiso para eliminar este negocio');
+      }
+
       const { error } = await supabase.from('stores').delete().eq('id', id);
-
       if (error) throw error;
       await fetchStores();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error deleting store:', err);
-      setError('Error al eliminar negocio. Por favor, intente de nuevo.');
+      setError(
+        err.message || 'Error al eliminar negocio. Por favor, intente de nuevo.'
+      );
     } finally {
       setLoading(false);
     }

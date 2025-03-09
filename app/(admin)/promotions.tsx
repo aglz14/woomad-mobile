@@ -20,6 +20,7 @@ import {
 } from 'lucide-react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import AdminTabBar from '@/components/AdminTabBar';
+import { useAuth } from '@/hooks/useAuth';
 
 const defaultFormValues = {
   title: '',
@@ -29,6 +30,7 @@ const defaultFormValues = {
   end_date: '',
   image: '',
   terms_conditions: '',
+  user_id: '',
 };
 
 type PromotionForm = {
@@ -39,6 +41,7 @@ type PromotionForm = {
   end_date: string;
   image: string;
   terms_conditions: string;
+  user_id: string;
 };
 
 export default function ManagePromotionsScreen() {
@@ -49,6 +52,8 @@ export default function ManagePromotionsScreen() {
   const [error, setError] = useState<string | null>(null);
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
+  const { session } = useAuth();
+  const userId = session?.user?.id;
 
   const {
     control,
@@ -57,13 +62,18 @@ export default function ManagePromotionsScreen() {
     setValue,
     formState: { errors },
   } = useForm<PromotionForm>({
-    defaultValues: defaultFormValues,
+    defaultValues: {
+      ...defaultFormValues,
+      user_id: userId || '',
+    },
   });
 
   useEffect(() => {
-    fetchPromotions();
-    fetchStores();
-  }, []);
+    if (userId) {
+      fetchPromotions();
+      fetchStores();
+    }
+  }, [userId]);
 
   async function fetchPromotions() {
     try {
@@ -80,6 +90,7 @@ export default function ManagePromotionsScreen() {
           end_date,
           image,
           terms_conditions,
+          user_id,
           stores (
             id,
             name,
@@ -90,6 +101,7 @@ export default function ManagePromotionsScreen() {
           )
         `
         )
+        .eq('user_id', userId)
         .order('start_date', { ascending: false });
 
       if (error) throw error;
@@ -132,9 +144,23 @@ export default function ManagePromotionsScreen() {
 
       const formattedData = {
         ...data,
+        user_id: userId,
       };
 
       if (editingId) {
+        // First check if the promotion belongs to the current user
+        const { data: existingPromotion, error: fetchError } = await supabase
+          .from('promotions')
+          .select('user_id')
+          .eq('id', editingId)
+          .single();
+
+        if (fetchError) throw fetchError;
+
+        if (existingPromotion.user_id !== userId) {
+          throw new Error('No tienes permiso para editar esta promoción');
+        }
+
         const { error: updateError } = await supabase
           .from('promotions')
           .update(formattedData)
@@ -149,12 +175,18 @@ export default function ManagePromotionsScreen() {
         if (insertError) throw insertError;
       }
 
-      reset(defaultFormValues);
+      reset({
+        ...defaultFormValues,
+        user_id: userId || '',
+      });
       setEditingId(null);
       await fetchPromotions();
-    } catch (err) {
+    } catch (err: any) {
       setError(
-        editingId ? 'Error al actualizar promoción' : 'Error al crear promoción'
+        err.message ||
+          (editingId
+            ? 'Error al actualizar promoción'
+            : 'Error al crear promoción')
       );
       console.error('Error saving promotion:', err);
     } finally {
@@ -163,6 +195,11 @@ export default function ManagePromotionsScreen() {
   }
 
   function editPromotion(promotion: any) {
+    if (promotion.user_id !== userId) {
+      setError('No tienes permiso para editar esta promoción');
+      return;
+    }
+
     setEditingId(promotion.id);
     reset({
       title: promotion.title,
@@ -172,18 +209,36 @@ export default function ManagePromotionsScreen() {
       end_date: promotion.end_date || '',
       image: promotion.image || '',
       terms_conditions: promotion.terms_conditions || '',
+      user_id: promotion.user_id,
     });
   }
 
   async function deletePromotion(id: string) {
     try {
       setLoading(true);
+
+      // First check if the promotion belongs to the current user
+      const { data: promotion, error: fetchError } = await supabase
+        .from('promotions')
+        .select('user_id')
+        .eq('id', id)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      if (promotion.user_id !== userId) {
+        throw new Error('No tienes permiso para eliminar esta promoción');
+      }
+
       const { error } = await supabase.from('promotions').delete().eq('id', id);
       if (error) throw error;
       await fetchPromotions();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error deleting promotion:', err);
-      setError('Error al eliminar promoción. Por favor, intente de nuevo.');
+      setError(
+        err.message ||
+          'Error al eliminar promoción. Por favor, intente de nuevo.'
+      );
     } finally {
       setLoading(false);
     }

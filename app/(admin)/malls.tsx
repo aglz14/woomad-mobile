@@ -17,6 +17,7 @@ import {
   CircleAlert as AlertCircle,
 } from 'lucide-react-native';
 import AdminTabBar from '@/components/AdminTabBar';
+import { useAuth } from '@/hooks/useAuth';
 
 const defaultFormValues = {
   name: '',
@@ -25,6 +26,7 @@ const defaultFormValues = {
   latitude: '',
   longitude: '',
   image: '',
+  user_id: '',
 };
 
 type MallForm = {
@@ -34,6 +36,7 @@ type MallForm = {
   latitude: string;
   longitude: string;
   image: string;
+  user_id: string;
 };
 
 export default function ManageMallsScreen() {
@@ -41,20 +44,26 @@ export default function ManageMallsScreen() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { session } = useAuth();
+  const userId = session?.user?.id;
 
   const {
     control,
     handleSubmit,
     reset,
-    setValue,
     formState: { errors },
   } = useForm<MallForm>({
-    defaultValues: defaultFormValues,
+    defaultValues: {
+      ...defaultFormValues,
+      user_id: userId || '',
+    },
   });
 
   useEffect(() => {
-    fetchMalls();
-  }, []);
+    if (userId) {
+      fetchMalls();
+    }
+  }, [userId]);
 
   async function fetchMalls() {
     try {
@@ -62,6 +71,7 @@ export default function ManageMallsScreen() {
       const { data, error } = await supabase
         .from('shopping_malls')
         .select('*')
+        .eq('user_id', userId)
         .order('name');
 
       if (error) throw error;
@@ -81,18 +91,34 @@ export default function ManageMallsScreen() {
       setLoading(true);
       setError(null);
 
+      const formattedData = {
+        name: data.name,
+        address: data.address,
+        description: data.description,
+        latitude: parseFloat(data.latitude),
+        longitude: parseFloat(data.longitude),
+        image: data.image,
+        user_id: userId,
+      };
+
       if (editingId) {
+        // First check if the mall belongs to the current user
+        const { data: existingMall, error: fetchError } = await supabase
+          .from('shopping_malls')
+          .select('user_id')
+          .eq('id', editingId)
+          .single();
+
+        if (fetchError) throw fetchError;
+
+        if (existingMall.user_id !== userId) {
+          throw new Error('No tienes permiso para editar esta plaza comercial');
+        }
+
         // Update existing mall
         const { error: updateError } = await supabase
           .from('shopping_malls')
-          .update({
-            name: data.name,
-            address: data.address,
-            description: data.description,
-            latitude: parseFloat(data.latitude),
-            longitude: parseFloat(data.longitude),
-            image: data.image,
-          })
+          .update(formattedData)
           .eq('id', editingId);
 
         if (updateError) throw updateError;
@@ -100,26 +126,23 @@ export default function ManageMallsScreen() {
         // Insert new mall
         const { error: insertError } = await supabase
           .from('shopping_malls')
-          .insert({
-            name: data.name,
-            address: data.address,
-            description: data.description,
-            latitude: parseFloat(data.latitude),
-            longitude: parseFloat(data.longitude),
-            image: data.image,
-          });
+          .insert(formattedData);
 
         if (insertError) throw insertError;
       }
 
-      reset(defaultFormValues);
+      reset({
+        ...defaultFormValues,
+        user_id: userId || '',
+      });
       setEditingId(null);
       await fetchMalls();
-    } catch (err) {
+    } catch (err: any) {
       setError(
-        editingId
-          ? 'Error al actualizar plaza comercial'
-          : 'Error al crear plaza comercial'
+        err.message ||
+          (editingId
+            ? 'Error al actualizar plaza comercial'
+            : 'Error al crear plaza comercial')
       );
       console.error('Error saving mall:', err);
     } finally {
@@ -128,30 +151,51 @@ export default function ManageMallsScreen() {
   }
 
   function editMall(mall: any) {
+    if (mall.user_id !== userId) {
+      setError('No tienes permiso para editar esta plaza comercial');
+      return;
+    }
+
     setEditingId(mall.id);
     reset({
       name: mall.name,
-      address: mall.address,
+      address: mall.address || '',
       description: mall.description || '',
-      latitude: mall.latitude.toString(),
-      longitude: mall.longitude.toString(),
+      latitude: mall.latitude ? mall.latitude.toString() : '',
+      longitude: mall.longitude ? mall.longitude.toString() : '',
       image: mall.image || '',
+      user_id: mall.user_id,
     });
   }
 
   async function deleteMall(id: string) {
     try {
       setLoading(true);
+
+      // First check if the mall belongs to the current user
+      const { data: mall, error: fetchError } = await supabase
+        .from('shopping_malls')
+        .select('user_id')
+        .eq('id', id)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      if (mall.user_id !== userId) {
+        throw new Error('No tienes permiso para eliminar esta plaza comercial');
+      }
+
       const { error } = await supabase
         .from('shopping_malls')
         .delete()
         .eq('id', id);
       if (error) throw error;
       await fetchMalls();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error deleting mall:', err);
       setError(
-        'Error al eliminar plaza comercial. Por favor, intente de nuevo.'
+        err.message ||
+          'Error al eliminar plaza comercial. Por favor, intente de nuevo.'
       );
     } finally {
       setLoading(false);
