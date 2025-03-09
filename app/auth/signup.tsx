@@ -51,26 +51,35 @@ export default function SignUpScreen() {
           .eq('id', signUpData.user.id)
           .single();
 
+        // If profile doesn't exist, create it
         if (!existingProfile) {
           const { error: profileError } = await supabase
             .from('profiles')
-            .insert([
-              {
-                id: signUpData.user.id,
-                email,
-                full_name: fullName,
-                role: 'user',
-              },
-            ]);
+            .insert({
+              id: signUpData.user.id,
+              full_name: fullName,
+              email: email,
+            });
 
           if (profileError) throw profileError;
         }
-      }
 
-      router.replace('/(tabs)');
+        // Create user preferences with default values
+        const { error: preferencesError } = await supabase
+          .from('user_preferences')
+          .insert({
+            user_id: signUpData.user.id,
+            notifications_enabled: false,
+            notification_radius: 4,
+          });
+
+        if (preferencesError) throw preferencesError;
+
+        router.replace('/(tabs)');
+      }
     } catch (err) {
-      setError('Error creating account. Please try again.');
       console.error('Signup error:', err);
+      setError('Error creating account. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -78,12 +87,14 @@ export default function SignUpScreen() {
 
   return (
     <ScrollView
-      ref={scrollViewRef}
       style={styles.container}
       contentContainerStyle={styles.contentContainer}
-      keyboardShouldPersistTaps="handled"
+      ref={scrollViewRef}
     >
-      <Pressable style={styles.backButton} onPress={() => router.back()}>
+      <Pressable
+        style={styles.backButton}
+        onPress={() => router.push('/(tabs)')}
+      >
         <ArrowLeft size={24} color="#1a1a1a" />
       </Pressable>
 
@@ -91,7 +102,7 @@ export default function SignUpScreen() {
         <View style={styles.header}>
           <Text style={styles.title}>Crear Cuenta</Text>
           <Text style={styles.subtitle}>
-            Regístrate para descubrir las mejores ofertas
+            Regístrate para acceder a todas las funciones
           </Text>
         </View>
 
@@ -169,6 +180,15 @@ export default function SignUpScreen() {
               Inicia sesión
             </Link>
           </View>
+
+          <Pressable
+            style={styles.homeLink}
+            onPress={() => router.push('/(tabs)')}
+          >
+            <Text style={styles.homeLinkText}>
+              Volver a la página principal
+            </Text>
+          </Pressable>
         </View>
       </View>
     </ScrollView>
@@ -269,6 +289,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   link: {
+    color: '#FF4B4B',
+    fontSize: 14,
+  },
+  homeLink: {
+    marginTop: 24,
+    alignItems: 'center',
+  },
+  homeLinkText: {
     color: '#FF4B4B',
     fontSize: 14,
   },

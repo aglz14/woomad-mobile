@@ -9,7 +9,7 @@ import {
 import { Link, router } from 'expo-router';
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { CircleAlert as AlertCircle } from 'lucide-react-native';
+import { CircleAlert as AlertCircle, ArrowLeft } from 'lucide-react-native';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -40,6 +40,13 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.container}>
+      <Pressable
+        style={styles.backButton}
+        onPress={() => router.push('/(tabs)')}
+      >
+        <ArrowLeft size={24} color="#1a1a1a" />
+      </Pressable>
+
       <View style={styles.header}>
         <Text style={styles.title}>¡Bienvenido!</Text>
         <Text style={styles.subtitle}>Inicia sesión para continuar</Text>
@@ -94,6 +101,13 @@ export default function LoginScreen() {
             Regístrate
           </Link>
         </View>
+
+        <Pressable
+          style={styles.homeLink}
+          onPress={() => router.push('/(tabs)')}
+        >
+          <Text style={styles.homeLinkText}>Volver a la página principal</Text>
+        </Pressable>
       </View>
     </View>
   );
@@ -178,6 +192,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   link: {
+    color: '#FF4B4B',
+    fontSize: 14,
+  },
+  backButton: {
+    position: 'absolute',
+    top: 60,
+    left: 20,
+    zIndex: 10,
+    padding: 8,
+  },
+  homeLink: {
+    marginTop: 24,
+    alignItems: 'center',
+  },
+  homeLinkText: {
     color: '#FF4B4B',
     fontSize: 14,
   },
