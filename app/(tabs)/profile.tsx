@@ -6,7 +6,7 @@ import {
   Pressable,
   ScrollView,
 } from 'react-native';
-import { Bell, Heart, Settings, ChevronRight } from 'lucide-react-native';
+import { Bell, Settings, ChevronRight } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
@@ -56,13 +56,6 @@ export default function ProfileScreen() {
               <Text style={styles.notificationStatus}>
                 {isEnabled ? 'Activadas' : 'Desactivadas'}
               </Text>
-            </View>
-            <ChevronRight size={20} color="#666666" />
-          </Pressable>
-          <Pressable style={styles.menuItem}>
-            <View style={styles.menuItemLeft}>
-              <Heart size={24} color="#666666" />
-              <Text style={styles.menuItemText}>Favoritos</Text>
             </View>
             <ChevronRight size={20} color="#666666" />
           </Pressable>
