@@ -11,228 +11,153 @@ export default function PrivacyPolicyScreen() {
         <Pressable onPress={() => router.back()} style={styles.backButton}>
           <ArrowLeft size={24} color="#1a1a1a" />
         </Pressable>
-        <Text style={styles.headerTitle}>Política de Privacidad</Text>
+        <Text style={styles.headerTitle}>Aviso de Privacidad</Text>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.title}>
-          Política de Privacidad para la Aplicación Móvil de Promociones en
-          Centros Comerciales
-        </Text>
+        <Text style={styles.title}>Aviso de Privacidad</Text>
         <Text style={styles.date}>
-          Última actualización: 8 de marzo de 2025
+          Fecha de última actualización: 8 de marzo de 2025
         </Text>
 
         <Text style={styles.paragraph}>
-          En Woomad nos comprometemos a proteger la privacidad de nuestros
-          usuarios. Esta política de privacidad describe cómo recopilamos,
-          usamos, almacenamos y compartimos tu información personal cuando usas
-          nuestra aplicación móvil que te proporciona promociones de negocios en
-          centros comerciales cercanos a tu ubicación.
+          En Woomad (en adelante "la Aplicación"), respetamos tu privacidad y
+          estamos comprometidos a proteger los datos personales que compartes
+          con nosotros. El presente Aviso de Privacidad tiene como objetivo
+          informarte sobre cómo recolectamos, usamos, almacenamos y protegemos
+          tu información personal, así como los derechos que tienes sobre tus
+          datos.
         </Text>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            1. Información que Recopilamos
-          </Text>
+          <Text style={styles.sectionTitle}>1. Información que recabamos</Text>
           <Text style={styles.paragraph}>
-            Recopilamos varios tipos de información para proporcionarte una
-            experiencia personalizada y para mejorar nuestros servicios. La
-            información que podemos recopilar incluye:
+            La Aplicación recaba la siguiente información personal:
           </Text>
 
-          <Text style={styles.subSectionTitle}>
-            a. Información Personal Identificable
+          <Text style={styles.listItem}>
+            • Datos proporcionados por el usuario: Cuando te registras en la
+            Aplicación o haces uso de ciertas funcionalidades, podemos
+            solicitarte que nos proporciones información personal como tu
+            nombre, correo electrónico, y contraseña.
           </Text>
           <Text style={styles.listItem}>
-            • Datos de contacto: nombre, correo electrónico, número de teléfono,
-            etc., cuando te registras o usas algunas de las funcionalidades de
-            la aplicación.
+            • Datos de ubicación: Con el fin de mostrarte promociones cercanas a
+            tu ubicación, recolectamos tu ubicación geográfica de manera
+            anónima. La información de ubicación solo se utilizará para
+            ofrecerte un mejor servicio.
           </Text>
           <Text style={styles.listItem}>
-            • Información de cuenta: contraseñas y preferencias de usuario que
-            se almacenan para tu acceso a la cuenta.
-          </Text>
-
-          <Text style={styles.subSectionTitle}>
-            b. Información de Ubicación
-          </Text>
-          <Text style={styles.listItem}>
-            • Ubicación precisa: Accedemos a tu ubicación en tiempo real para
-            proporcionarte promociones basadas en los centros comerciales
-            cercanos a tu ubicación. Esta información solo será utilizada para
-            mostrarte las ofertas relevantes y no será almacenada
-            permanentemente sin tu consentimiento.
-          </Text>
-
-          <Text style={styles.subSectionTitle}>
-            c. Información de Dispositivo
-          </Text>
-          <Text style={styles.listItem}>
-            • Información técnica: Datos sobre el dispositivo móvil que usas
-            (tipo de dispositivo, sistema operativo, identificadores únicos,
-            etc.).
-          </Text>
-          <Text style={styles.listItem}>
-            • Datos de uso: Información sobre cómo interactúas con la
-            aplicación, como las funcionalidades que usas y la duración de tu
-            sesión.
+            • Datos de uso de la aplicación: Recolectamos información
+            relacionada con tu uso de la Aplicación, tales como las promociones
+            que visualizas o las interacciones que realizas dentro de la
+            plataforma.
           </Text>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>2. Uso de la Información</Text>
+          <Text style={styles.sectionTitle}>2. Uso de los datos</Text>
           <Text style={styles.paragraph}>
-            Usamos la información recopilada para los siguientes fines:
+            La información que recopilamos se utiliza para los siguientes fines:
           </Text>
           <Text style={styles.listItem}>
-            • Proporcionar promociones personalizadas: Mostrarte ofertas y
-            descuentos de negocios en centros comerciales cercanos a tu
-            ubicación.
+            • Proporcionar y mejorar la experiencia de la Aplicación, incluyendo
+            la personalización de las promociones basadas en tu ubicación.
           </Text>
           <Text style={styles.listItem}>
-            • Mejorar la experiencia de usuario: Mejorar y personalizar nuestra
-            aplicación para que sea más relevante para ti.
+            • Enviar notificaciones relacionadas con las promociones y
+            actualizaciones de la Aplicación.
           </Text>
           <Text style={styles.listItem}>
-            • Comunicación contigo: Enviarte notificaciones sobre nuevas
-            promociones, actualizaciones de la aplicación y otros avisos
-            importantes.
+            • Analizar el uso de la Aplicación con fines estadísticos para
+            mejorar su funcionamiento.
           </Text>
           <Text style={styles.listItem}>
-            • Seguridad y análisis: Utilizar tus datos de uso para prevenir
-            fraudes y realizar análisis que mejoren el funcionamiento de la
-            aplicación.
+            • Cumplir con las obligaciones legales y fiscales relacionadas con
+            el uso de la Aplicación.
           </Text>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            3. Uso de la Información de Ubicación
-          </Text>
+          <Text style={styles.sectionTitle}>3. Servicios de terceros</Text>
           <Text style={styles.paragraph}>
-            Tu ubicación es fundamental para mostrarte promociones cercanas. Sin
-            embargo, solo recopilamos esta información cuando la aplicación está
-            en uso y con tu consentimiento explícito. Puedes desactivar la
-            recopilación de tu ubicación en cualquier momento a través de la
-            configuración de tu dispositivo, pero esto puede limitar algunas
-            funcionalidades de la aplicación.
+            La Aplicación utiliza servicios de terceros para almacenar y
+            gestionar los datos, específicamente Supabase, que es un servicio
+            que nos permite manejar la base de datos y la autenticación de
+            usuarios. Estos proveedores de servicios están sujetos a sus propias
+            políticas de privacidad, y solo accederán a los datos de los
+            usuarios según sea necesario para brindar los servicios. No
+            compartimos tus datos con terceros para fines de marketing sin tu
+            consentimiento.
           </Text>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            4. Compartición de Información
-          </Text>
+          <Text style={styles.sectionTitle}>4. Conservación de datos</Text>
           <Text style={styles.paragraph}>
-            No vendemos, alquilamos ni compartimos tu información personal con
-            terceros, excepto en las siguientes circunstancias:
-          </Text>
-          <Text style={styles.listItem}>
-            • Proveedores de servicios: Podemos compartir información con
-            terceros que nos proporcionen servicios necesarios para el
-            funcionamiento de la aplicación (por ejemplo, servicios de hosting o
-            análisis de datos), quienes estarán sujetos a las mismas
-            obligaciones de privacidad que esta política.
-          </Text>
-          <Text style={styles.listItem}>
-            • Requerimientos legales: Podemos compartir tu información si es
-            necesario para cumplir con una obligación legal, una orden judicial,
-            o para proteger nuestros derechos legales o los de otros usuarios.
+            Tus datos serán almacenados mientras tengas una cuenta activa en la
+            Aplicación y por el tiempo necesario para cumplir con los fines
+            descritos en este Aviso de Privacidad. En caso de que decidas
+            eliminar tu cuenta, tus datos serán eliminados conforme a las
+            políticas de Supabase y según lo que se indica en el siguiente
+            apartado.
           </Text>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            5. Seguridad de la Información
-          </Text>
+          <Text style={styles.sectionTitle}>5. Derechos de los usuarios</Text>
           <Text style={styles.paragraph}>
-            Tomamos medidas razonables para proteger tu información personal
-            contra pérdida, robo, uso indebido y acceso no autorizado. Sin
-            embargo, no podemos garantizar la seguridad absoluta de los datos
-            transmitidos a través de la aplicación.
-          </Text>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>6. Derechos del Usuario</Text>
-          <Text style={styles.paragraph}>
-            De acuerdo con la Ley Federal de Protección de Datos Personales en
-            Posesión de los Particulares en México, tienes los siguientes
-            derechos:
-          </Text>
-          <Text style={styles.listItem}>
-            • Acceso: Puedes solicitar información sobre los datos personales
-            que tenemos sobre ti.
-          </Text>
-          <Text style={styles.listItem}>
-            • Rectificación: Puedes corregir datos personales incorrectos o
-            incompletos.
-          </Text>
-          <Text style={styles.listItem}>
-            • Cancelación: Puedes solicitar la eliminación de tus datos
-            personales.
-          </Text>
-          <Text style={styles.listItem}>
-            • Oposición: Puedes oponerte al tratamiento de tus datos para fines
-            específicos.
-          </Text>
-          <Text style={styles.paragraph}>
-            Para ejercer cualquiera de estos derechos, por favor, comunícate con
-            nosotros a través de la siguiente dirección de correo electrónico:
+            Tienes derecho a acceder, rectificar, cancelar u oponerte al
+            tratamiento de tus datos personales. Si deseas ejercer cualquiera de
+            estos derechos o solicitar la eliminación de tu cuenta, por favor
+            contacta con nosotros a través del siguiente correo electrónico:
             info@woomad.com.
           </Text>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            7. Cookies y Tecnologías Similares
-          </Text>
+          <Text style={styles.sectionTitle}>6. Eliminar tus datos</Text>
           <Text style={styles.paragraph}>
-            La aplicación puede utilizar cookies y tecnologías similares para
-            mejorar la experiencia del usuario. Las cookies son pequeños
-            archivos que se almacenan en tu dispositivo y nos ayudan a
-            recordarte y personalizar tu experiencia en la aplicación.
+            Si deseas eliminar tu cuenta y todos los datos asociados, puedes
+            hacerlo de las siguientes maneras:
           </Text>
+          <Text style={styles.listItem}>
+            • A través de correo electrónico: Envía una solicitud de eliminación
+            de datos a info@woomad.com, y procederemos con la eliminación de tu
+            cuenta y datos asociados.
+          </Text>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>7. Seguridad de los datos</Text>
           <Text style={styles.paragraph}>
-            Puedes configurar tu dispositivo para que te avise cuando se
-            utilicen cookies o para bloquearlas, pero algunas funcionalidades de
-            la aplicación pueden no estar disponibles si desactivas las cookies.
+            Implementamos medidas de seguridad razonables para proteger tus
+            datos personales, sin embargo, ningún sistema de seguridad es
+            infalible. No podemos garantizar la seguridad absoluta de la
+            información, aunque trabajamos continuamente para mejorar nuestras
+            protecciones.
           </Text>
         </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            8. Cambios a esta Política de Privacidad
+            8. Modificaciones al Aviso de Privacidad
           </Text>
           <Text style={styles.paragraph}>
-            Nos reservamos el derecho de modificar esta política de privacidad
-            en cualquier momento. Cualquier cambio será publicado en esta página
-            con la fecha de la última actualización. Te recomendamos revisar
-            periódicamente esta política para estar informado sobre cómo
-            protegemos tu información.
+            Nos reservamos el derecho de modificar este Aviso de Privacidad en
+            cualquier momento. Cualquier cambio será notificado a través de la
+            Aplicación o por correo electrónico. Te recomendamos revisar
+            periódicamente este Aviso de Privacidad para estar al tanto de
+            cualquier modificación.
           </Text>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>9. Contacta con Nosotros</Text>
+          <Text style={styles.sectionTitle}>9. Contacto</Text>
           <Text style={styles.paragraph}>
-            Si tienes alguna pregunta sobre esta política de privacidad o sobre
-            cómo manejamos tus datos personales, no dudes en contactarnos en:
-          </Text>
-          <Text style={styles.paragraph}>
-            Correo electrónico: info@woomad.com
-          </Text>
-          <Text style={styles.paragraph}>
-            Esta Política de Privacidad está sujeta a las leyes y regulaciones
-            aplicables en México, en especial la Ley Federal de Protección de
-            Datos Personales en Posesión de los Particulares y su reglamento.
-          </Text>
-        </View>
-
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>
-            © 2025 Woomad. Todos los derechos reservados.
+            Si tienes preguntas o comentarios sobre este Aviso de Privacidad, o
+            si deseas ejercer cualquiera de tus derechos en relación con tus
+            datos personales, puedes contactarnos en info@woomad.com
           </Text>
         </View>
       </ScrollView>
@@ -248,9 +173,8 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
+    padding: 20,
     paddingTop: 60,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
     backgroundColor: '#ffffff',
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
@@ -268,7 +192,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   title: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '700',
     color: '#1a1a1a',
     marginBottom: 8,
@@ -290,7 +214,7 @@ const styles = StyleSheet.create({
   subSectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333333',
+    color: '#1a1a1a',
     marginTop: 12,
     marginBottom: 8,
   },
@@ -298,7 +222,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 24,
     color: '#333333',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   listItem: {
     fontSize: 16,
@@ -306,14 +230,5 @@ const styles = StyleSheet.create({
     color: '#333333',
     marginBottom: 8,
     paddingLeft: 16,
-  },
-  footer: {
-    marginTop: 24,
-    marginBottom: 40,
-    alignItems: 'center',
-  },
-  footerText: {
-    fontSize: 14,
-    color: '#666666',
   },
 });
