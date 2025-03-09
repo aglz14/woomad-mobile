@@ -6,6 +6,7 @@ import {
   TextInput,
   ActivityIndicator,
   Alert,
+  Switch,
 } from 'react-native';
 import { ArrowLeft } from 'lucide-react-native';
 import { router } from 'expo-router';
@@ -13,6 +14,8 @@ import { StatusBar } from 'expo-status-bar';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
+import { useNotifications } from '@/hooks/useNotifications';
+import { createBoxShadow } from '@/utils/styles';
 
 export default function SettingsScreen() {
   const { session } = useAuth();
@@ -129,6 +132,7 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    padding: 20,
     backgroundColor: '#f8f9fa',
   },
   centered: {
@@ -163,11 +167,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 20,
     marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    ...createBoxShadow(0, 2, 4, 0.1),
   },
   sectionTitle: {
     fontSize: 18,
