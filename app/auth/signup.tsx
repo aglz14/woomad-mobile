@@ -6,11 +6,13 @@ import {
   Pressable,
   ActivityIndicator,
   ScrollView,
+  Image,
 } from 'react-native';
 import { Link, router } from 'expo-router';
 import { useState, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { CircleAlert as AlertCircle, ArrowLeft } from 'lucide-react-native';
+import { useGoogleAuth } from '@/hooks/useGoogleAuth';
 
 export default function SignUpScreen() {
   const [email, setEmail] = useState('');
@@ -19,6 +21,11 @@ export default function SignUpScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const scrollViewRef = useRef<ScrollView>(null);
+  const {
+    signInWithGoogle,
+    loading: googleLoading,
+    error: googleError,
+  } = useGoogleAuth();
 
   async function handleSignUp() {
     if (!email || !password || !fullName) {
@@ -95,10 +102,10 @@ export default function SignUpScreen() {
           </Text>
         </View>
 
-        {error && (
+        {(error || googleError) && (
           <View style={styles.errorContainer}>
             <AlertCircle color="#FF4B4B" size={20} />
-            <Text style={styles.errorText}>{error}</Text>
+            <Text style={styles.errorText}>{error || googleError}</Text>
           </View>
         )}
 
@@ -160,6 +167,37 @@ export default function SignUpScreen() {
               <ActivityIndicator color="#fff" />
             ) : (
               <Text style={styles.buttonText}>Crear Cuenta</Text>
+            )}
+          </Pressable>
+
+          <View style={styles.divider}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>O</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          <Pressable
+            style={[
+              styles.googleButton,
+              googleLoading && styles.buttonDisabled,
+            ]}
+            onPress={signInWithGoogle}
+            disabled={googleLoading}
+          >
+            {googleLoading ? (
+              <ActivityIndicator color="#1a1a1a" />
+            ) : (
+              <>
+                <Image
+                  source={{
+                    uri: 'https://developers.google.com/identity/images/g-logo.png',
+                  }}
+                  style={styles.googleIcon}
+                />
+                <Text style={styles.googleButtonText}>
+                  Continuar con Google
+                </Text>
+              </>
             )}
           </Pressable>
 
@@ -250,7 +288,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     marginTop: 24,
-    minHeight: 56,
   },
   buttonDisabled: {
     opacity: 0.7,
@@ -259,6 +296,41 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 20,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#e9ecef',
+  },
+  dividerText: {
+    marginHorizontal: 10,
+    color: '#666666',
+    fontSize: 14,
+  },
+  googleButton: {
+    flexDirection: 'row',
+    backgroundColor: '#ffffff',
+    padding: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#e9ecef',
+  },
+  googleIcon: {
+    width: 20,
+    height: 20,
+    marginRight: 10,
+  },
+  googleButtonText: {
+    color: '#1a1a1a',
+    fontSize: 16,
+    fontWeight: '500',
   },
   footer: {
     flexDirection: 'row',

@@ -5,12 +5,16 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "scheme": "myapp",
+    "scheme": "woomad",
     "userInterfaceStyle": "automatic",
     "sdkVersion": "52.0.0",
     "platforms": ["ios", "android", "web"],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.woomad.app"
+    },
+    "android": {
+      "package": "com.woomad.app"
     },
     "web": {
       "bundler": "metro",
