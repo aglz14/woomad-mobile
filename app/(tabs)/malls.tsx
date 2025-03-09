@@ -1,4 +1,13 @@
-import { View, Text, StyleSheet, ScrollView, Image, Pressable, ActivityIndicator, TextInput } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Image,
+  Pressable,
+  ActivityIndicator,
+  TextInput,
+} from 'react-native';
 import { MapPin, Search } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
 import { useEffect, useState } from 'react';
@@ -19,7 +28,9 @@ type Mall = {
 export default function MallsScreen() {
   const [malls, setMalls] = useState<Mall[]>([]);
   const [filteredMalls, setFilteredMalls] = useState<Mall[]>([]);
-  const [location, setLocation] = useState<Location.LocationObject | null>(null);
+  const [location, setLocation] = useState<Location.LocationObject | null>(
+    null
+  );
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -46,46 +57,48 @@ export default function MallsScreen() {
   async function fetchMalls(userLocation: Location.LocationObject | null) {
     try {
       setLoading(true);
-      
+
       if (!userLocation) {
         setError('Location not available');
         return;
       }
-      
+
       const { data: mallsData, error: fetchError } = await supabase
         .from('shopping_malls')
-        .select('*')
+        .select('*');
 
       if (fetchError) throw fetchError;
-      
+
       // Calculate distances and get store counts
-      const mallsWithStores = await Promise.all((mallsData || []).map(async (mall) => {
-        const { count, error: countError } = await supabase
-          .from('stores')
-          .select('*', { count: 'exact', head: true })
-          .eq('mall_id', mall.id);
-          
-        if (countError) throw countError;
-        
-        // Calculate actual distance using Haversine formula
-        const distance = calculateDistance(
-          userLocation.coords.latitude,
-          userLocation.coords.longitude,
-          mall.latitude,
-          mall.longitude
-        );
-        
-        return {
-          ...mall,
-          store_count: count || 0,
-          distance: `${distance.toFixed(1)} km`,
-          distance_value: distance,
-        };
-      }));
+      const mallsWithStores = await Promise.all(
+        (mallsData || []).map(async (mall) => {
+          const { count, error: countError } = await supabase
+            .from('stores')
+            .select('*', { count: 'exact', head: true })
+            .eq('mall_id', mall.id);
+
+          if (countError) throw countError;
+
+          // Calculate actual distance using Haversine formula
+          const distance = calculateDistance(
+            userLocation.coords.latitude,
+            userLocation.coords.longitude,
+            mall.latitude,
+            mall.longitude
+          );
+
+          return {
+            ...mall,
+            store_count: count || 0,
+            distance: `${distance.toFixed(1)} km`,
+            distance_value: distance,
+          };
+        })
+      );
 
       // Sort malls by distance
-      const sortedMalls = mallsWithStores.sort((a, b) => 
-        a.distance_value - b.distance_value
+      const sortedMalls = mallsWithStores.sort(
+        (a, b) => a.distance_value - b.distance_value
       );
 
       setMalls(sortedMalls);
@@ -101,15 +114,22 @@ export default function MallsScreen() {
   }
 
   // Haversine formula to calculate distance between two points
-  function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  function calculateDistance(
+    lat1: number,
+    lon1: number,
+    lat2: number,
+    lon2: number
+  ): number {
     const R = 6371; // Earth's radius in kilometers
     const dLat = toRad(lat2 - lat1);
     const dLon = toRad(lon2 - lon1);
-    const a = 
-      Math.sin(dLat/2) * Math.sin(dLat/2) +
-      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * 
-      Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(toRad(lat1)) *
+        Math.cos(toRad(lat2)) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
   }
 
@@ -128,7 +148,7 @@ export default function MallsScreen() {
     const searchTerms = query.toLowerCase().trim().split(' ');
     const filtered = malls.filter((mall) => {
       const searchString = `${mall.name} ${mall.address}`.toLowerCase();
-      return searchTerms.every(term => searchString.includes(term));
+      return searchTerms.every((term) => searchString.includes(term));
     });
     setFilteredMalls(filtered);
   };
@@ -145,12 +165,16 @@ export default function MallsScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Centros Comerciales</Text>
-        <Text style={styles.subtitle}>Encuentra las mejores tiendas cerca de ti</Text>
+        <Text style={styles.subtitle}>
+          Encuentra las mejores tiendas cerca de ti
+        </Text>
         {location && (
           <Text style={styles.locationNote}>Usando tu ubicación actual</Text>
         )}
         <View style={styles.searchContainer}>
-          <Search size={20} color="#666666" style={styles.searchIcon} />
+          <View>
+            <Search size={20} color="#666666" style={styles.searchIcon} />
+          </View>
           <TextInput
             style={styles.searchInput}
             placeholder="Buscar por nombre o dirección..."
@@ -159,18 +183,24 @@ export default function MallsScreen() {
             placeholderTextColor="#666666"
           />
         </View>
-        <Text style={styles.locationNote}>Mostrando plazas más cercanas primero</Text>
+        <Text style={styles.locationNote}>
+          Mostrando plazas más cercanas primero
+        </Text>
         {error && <Text style={styles.error}>{error}</Text>}
       </View>
 
       <ScrollView style={styles.content}>
         {filteredMalls.map((mall) => (
-          <Pressable key={mall.id} style={styles.mallCard}
+          <Pressable
+            key={mall.id}
+            style={styles.mallCard}
             onPress={() => router.push(`/center_details/${mall.id}`)}
           >
             <Image
               source={{
-                uri: mall.image || 'https://images.unsplash.com/photo-1581235720704-06d3acfcb36f?w=800&fit=crop&q=80',
+                uri:
+                  mall.image ||
+                  'https://images.unsplash.com/photo-1581235720704-06d3acfcb36f?w=800&fit=crop&q=80',
               }}
               style={styles.mallImage}
             />
@@ -178,7 +208,9 @@ export default function MallsScreen() {
               <View style={styles.mallInfo}>
                 <Text style={styles.mallName}>{mall.name}</Text>
                 <View style={styles.addressContainer}>
-                  <MapPin size={16} color="#666666" />
+                  <View>
+                    <MapPin size={16} color="#666666" />
+                  </View>
                   <Text style={styles.address}>{mall.address}</Text>
                 </View>
                 <Text style={styles.distance}>{mall.distance}</Text>
@@ -222,13 +254,13 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 16,
     color: '#666666',
-    marginTop: 4
+    marginTop: 4,
   },
   locationNote: {
     fontSize: 14,
     color: '#FF4B4B',
     marginTop: 8,
-    fontStyle: 'italic'
+    fontStyle: 'italic',
   },
   searchContainer: {
     flexDirection: 'row',
