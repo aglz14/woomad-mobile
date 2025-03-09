@@ -29,11 +29,8 @@ export function useGoogleAuth() {
       setLoading(true);
       setError(null);
 
-      // Create a response type based on the platform
-      const responseType =
-        Platform.OS === 'web'
-          ? AuthSession.ResponseType.Token
-          : AuthSession.ResponseType.Code;
+      // Always use the code response type with Expo's proxy
+      const responseType = AuthSession.ResponseType.Code;
 
       console.log('Starting Google sign-in with redirect URI:', redirectUri);
 
@@ -58,37 +55,39 @@ export function useGoogleAuth() {
       if (data?.url) {
         console.log('Opening auth URL:', data.url);
 
-        const result = await WebBrowser.openAuthSessionAsync(
-          data.url,
-          redirectUri
-        );
+        // Use Expo's AuthSession to handle the authentication flow
+        const result = (await AuthSession.startAsync({
+          authUrl: data.url,
+          returnUrl: redirectUri,
+        })) as AuthSession.AuthSessionResult;
 
         console.log('Auth result type:', result.type);
 
         if (result.type === 'success') {
           // Handle the successful authentication
-          const { url } = result;
-          console.log('Success URL:', url);
+          const { params } = result;
+          console.log('Success params:', params);
 
-          // If we're using the code flow, exchange the code for a session
-          if (responseType === AuthSession.ResponseType.Code) {
-            const code = url.split('code=')[1]?.split('&')[0];
-
-            if (!code) {
-              throw new Error('No code parameter found in redirect URL');
-            }
+          // If we have a code, exchange it for a session
+          if (params?.code) {
+            console.log('Exchanging code for session');
 
             // Exchange the code for a session
             const { error: sessionError } =
-              await supabase.auth.exchangeCodeForSession(code);
+              await supabase.auth.exchangeCodeForSession(params.code);
 
             if (sessionError) {
               console.error('Session exchange error:', sessionError);
               throw sessionError;
             }
+          } else {
+            console.warn('No code parameter found in redirect response');
           }
+        } else if (result.type === 'error') {
+          console.error('Auth error:', result.error);
+          throw new Error(result.error?.message || 'Authentication failed');
         } else {
-          console.log('Auth was dismissed or failed:', result);
+          console.log('Auth was dismissed or failed:', result.type);
           throw new Error('Authentication was cancelled or failed');
         }
       }

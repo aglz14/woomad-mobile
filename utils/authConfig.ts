@@ -4,26 +4,11 @@ import { Platform } from 'react-native';
 
 // Get the correct redirect URI based on the environment
 export function getRedirectUri(): string {
-  // For Expo Go
-  if (Constants.appOwnership === 'expo') {
-    // Format: https://auth.expo.io/@your-username/your-app-slug
-    return AuthSession.makeRedirectUri({
-      useProxy: true,
-    });
-  }
-
-  // For standalone apps or development builds
-  if (Platform.OS === 'web') {
-    // For web, use the current URL
-    return window.location.origin;
-  } else {
-    // For native apps, use the scheme
-    return AuthSession.makeRedirectUri({
-      scheme: 'woomad',
-      path: 'auth/callback',
-      native: true,
-    });
-  }
+  // Always use Expo's authentication proxy for Google OAuth
+  // This provides a valid HTTPS URL that Google will accept
+  return AuthSession.makeRedirectUri({
+    useProxy: true,
+  });
 }
 
 // Log all possible redirect URIs for debugging
