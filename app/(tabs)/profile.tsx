@@ -123,7 +123,10 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        <ContentContainer style={styles.guestContent}>
+        <ContentContainer
+          style={styles.guestContentScroll}
+          contentContainerStyle={styles.guestContentContainer}
+        >
           <Pressable
             style={styles.authButton}
             onPress={() => router.push('/auth/login')}
@@ -169,7 +172,10 @@ export default function ProfileScreen() {
         </View>
       </View>
 
-      <ScrollView style={styles.content}>
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={styles.contentContainer}
+      >
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Mis Preferencias</Text>
           <Pressable
@@ -177,13 +183,15 @@ export default function ProfileScreen() {
             onPress={() => router.push('/notifications')}
           >
             <View style={styles.menuItemLeft}>
-              <Bell size={24} color={isEnabled ? '#FF4B4B' : '#666666'} />
+              <Bell size={24} color="#FF4B4B" />
               <Text style={styles.menuItemText}>Notificaciones</Text>
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <Text style={styles.notificationStatus}>
                 {isEnabled ? 'Activadas' : 'Desactivadas'}
               </Text>
+              <ChevronRight size={20} color="#8E8E93" />
             </View>
-            <ChevronRight size={20} color="#666666" />
           </Pressable>
           <Pressable
             style={styles.menuItem}
@@ -206,9 +214,9 @@ export default function ProfileScreen() {
             >
               <View style={styles.menuItemLeft}>
                 <Settings size={24} color="#FF4B4B" />
-                <Text style={styles.menuItemText}>Panel de Administración</Text>
+                <Text style={styles.menuItemText}>Panel de Administrador</Text>
               </View>
-              <ChevronRight size={20} color="#666666" />
+              <ChevronRight size={20} color="#8E8E93" />
             </Pressable>
           </View>
         )}
@@ -289,6 +297,9 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
+  contentContainer: {
+    paddingBottom: 30,
+  },
   section: {
     backgroundColor: '#ffffff',
     marginTop: 20,
@@ -337,11 +348,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  guestContent: {
+  guestContentScroll: {
     flex: 1,
+    padding: 0,
+  },
+  guestContentContainer: {
     padding: 20,
     justifyContent: 'center',
     alignItems: 'center',
+    flexGrow: 1,
   },
   authButton: {
     backgroundColor: '#FF4B4B',
