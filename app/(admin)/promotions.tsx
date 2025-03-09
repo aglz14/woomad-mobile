@@ -6,6 +6,7 @@ import {
   Pressable,
   TextInput,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
 import { supabase } from '@/lib/supabase';
@@ -15,7 +16,9 @@ import {
   CreditCard as Edit2,
   Trash2,
   CircleAlert as AlertCircle,
+  Calendar,
 } from 'lucide-react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import AdminTabBar from '@/components/AdminTabBar';
 
 const defaultFormValues = {
@@ -44,6 +47,8 @@ export default function ManagePromotionsScreen() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showStartDatePicker, setShowStartDatePicker] = useState(false);
+  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
 
   const {
     control,
@@ -184,7 +189,7 @@ export default function ManagePromotionsScreen() {
     }
   }
 
-  const formatDate = (dateString: string) => {
+  const formatDateForDisplay = (dateString: string) => {
     if (!dateString) return '';
     const date = new Date(dateString);
     return date.toLocaleDateString('es-ES', {
@@ -192,6 +197,10 @@ export default function ManagePromotionsScreen() {
       month: 'long',
       day: 'numeric',
     });
+  };
+
+  const formatDateForDB = (date: Date) => {
+    return date.toISOString().split('T')[0];
   };
 
   if (loading && promotions.length === 0) {
@@ -307,12 +316,32 @@ export default function ManagePromotionsScreen() {
               name="start_date"
               render={({ field: { onChange, value } }) => (
                 <View style={[styles.inputContainer, styles.halfInput]}>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Fecha Inicio (AAAA-MM-DD)"
-                    value={value}
-                    onChangeText={onChange}
-                  />
+                  <Pressable
+                    style={styles.dateInputContainer}
+                    onPress={() => setShowStartDatePicker(true)}
+                  >
+                    <Calendar
+                      size={20}
+                      color="#666666"
+                      style={styles.calendarIcon}
+                    />
+                    <Text style={styles.dateText}>
+                      {value ? formatDateForDisplay(value) : 'Fecha Inicio'}
+                    </Text>
+                  </Pressable>
+                  {showStartDatePicker && (
+                    <DateTimePicker
+                      value={value ? new Date(value) : new Date()}
+                      mode="date"
+                      display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                      onChange={(event, selectedDate) => {
+                        setShowStartDatePicker(Platform.OS === 'ios');
+                        if (selectedDate) {
+                          onChange(formatDateForDB(selectedDate));
+                        }
+                      }}
+                    />
+                  )}
                 </View>
               )}
             />
@@ -322,12 +351,32 @@ export default function ManagePromotionsScreen() {
               name="end_date"
               render={({ field: { onChange, value } }) => (
                 <View style={[styles.inputContainer, styles.halfInput]}>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Fecha Fin (AAAA-MM-DD)"
-                    value={value}
-                    onChangeText={onChange}
-                  />
+                  <Pressable
+                    style={styles.dateInputContainer}
+                    onPress={() => setShowEndDatePicker(true)}
+                  >
+                    <Calendar
+                      size={20}
+                      color="#666666"
+                      style={styles.calendarIcon}
+                    />
+                    <Text style={styles.dateText}>
+                      {value ? formatDateForDisplay(value) : 'Fecha Fin'}
+                    </Text>
+                  </Pressable>
+                  {showEndDatePicker && (
+                    <DateTimePicker
+                      value={value ? new Date(value) : new Date()}
+                      mode="date"
+                      display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                      onChange={(event, selectedDate) => {
+                        setShowEndDatePicker(Platform.OS === 'ios');
+                        if (selectedDate) {
+                          onChange(formatDateForDB(selectedDate));
+                        }
+                      }}
+                    />
+                  )}
                 </View>
               )}
             />
@@ -399,8 +448,9 @@ export default function ManagePromotionsScreen() {
                     ` (${promotion.stores.shopping_malls.name})`}
                 </Text>
                 <Text style={styles.promotionDates}>
-                  {formatDate(promotion.start_date)}
-                  {promotion.end_date && ` - ${formatDate(promotion.end_date)}`}
+                  {formatDateForDisplay(promotion.start_date)}
+                  {promotion.end_date &&
+                    ` - ${formatDateForDisplay(promotion.end_date)}`}
                 </Text>
               </View>
               <View style={styles.actionButtons}>
@@ -605,5 +655,21 @@ const styles = StyleSheet.create({
   deleteButton: {
     borderWidth: 1,
     borderColor: '#FFE5E5',
+  },
+  dateInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderRadius: 8,
+    padding: 12,
+    backgroundColor: '#ffffff',
+  },
+  calendarIcon: {
+    marginRight: 8,
+  },
+  dateText: {
+    fontSize: 16,
+    color: '#333333',
   },
 });
