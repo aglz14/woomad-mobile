@@ -19,6 +19,7 @@ import {
   Tag,
   Calendar,
 } from 'lucide-react-native';
+import { createBoxShadow } from '@/utils/styles';
 
 type StoreDetails = {
   id: string;
@@ -330,11 +331,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderRadius: 12,
     padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    ...createBoxShadow(0, 2, 4, 0.1),
   },
   detailRow: {
     flexDirection: 'row',
@@ -354,11 +351,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 16,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    ...createBoxShadow(0, 2, 4, 0.1),
   },
   promotionImage: {
     width: '100%',
