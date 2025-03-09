@@ -41,11 +41,25 @@ export default function SettingsScreen() {
     try {
       setIsSaving(true);
 
-      const { error } = await supabase.auth.updateUser({
+      // Update user metadata in auth
+      const { error: authError } = await supabase.auth.updateUser({
         data: { full_name: fullName.trim() },
       });
 
-      if (error) throw error;
+      if (authError) throw authError;
+
+      // Also update the profiles table
+      if (session?.user?.id) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({ full_name: fullName.trim() })
+          .eq('id', session.user.id);
+
+        if (profileError) {
+          console.error('Error updating profile:', profileError);
+          throw profileError;
+        }
+      }
 
       Alert.alert('Éxito', 'Tu información ha sido actualizada correctamente');
     } catch (error) {
