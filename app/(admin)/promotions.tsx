@@ -384,77 +384,103 @@ export default function ManagePromotionsScreen() {
             )}
           />
 
-          <View style={styles.row}>
-            <Controller
-              control={control}
-              name="start_date"
-              render={({ field: { onChange, value } }) => (
-                <View style={[styles.inputContainer, styles.halfInput]}>
-                  <Pressable
-                    style={styles.dateInputContainer}
-                    onPress={() => setShowStartDatePicker(true)}
-                  >
-                    <Calendar
-                      size={20}
-                      color="#666666"
-                      style={styles.calendarIcon}
-                    />
-                    <Text style={styles.dateText}>
-                      {value ? formatDateForDisplay(value) : 'Fecha Inicio'}
-                    </Text>
-                  </Pressable>
-                  {showStartDatePicker && (
-                    <DateTimePicker
-                      value={value ? new Date(value) : new Date()}
-                      mode="date"
-                      display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                      onChange={(event, selectedDate) => {
-                        setShowStartDatePicker(Platform.OS === 'ios');
-                        if (selectedDate) {
-                          onChange(formatDateForDB(selectedDate));
-                        }
-                      }}
-                    />
-                  )}
-                </View>
-              )}
-            />
+          {/* Start Date - Full Width */}
+          <Controller
+            control={control}
+            name="start_date"
+            render={({ field: { onChange, value } }) => (
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Fecha de Inicio</Text>
+                <Pressable
+                  style={styles.dateInputContainer}
+                  onPress={() => {
+                    // Close end date picker if open
+                    setShowEndDatePicker(false);
+                    // Toggle start date picker
+                    setShowStartDatePicker(!showStartDatePicker);
+                  }}
+                >
+                  <Calendar
+                    size={20}
+                    color="#666666"
+                    style={styles.calendarIcon}
+                  />
+                  <Text style={styles.dateText}>
+                    {value
+                      ? formatDateForDisplay(value)
+                      : 'Seleccionar fecha de inicio'}
+                  </Text>
+                </Pressable>
+                {showStartDatePicker && (
+                  <DateTimePicker
+                    value={value ? new Date(value) : new Date()}
+                    mode="date"
+                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                    onChange={(event, selectedDate) => {
+                      setShowStartDatePicker(false);
+                      if (selectedDate) {
+                        onChange(formatDateForDB(selectedDate));
+                      }
+                    }}
+                  />
+                )}
+                {errors.start_date && (
+                  <Text style={styles.errorMessage}>
+                    {errors.start_date.message}
+                  </Text>
+                )}
+              </View>
+            )}
+          />
 
-            <Controller
-              control={control}
-              name="end_date"
-              render={({ field: { onChange, value } }) => (
-                <View style={[styles.inputContainer, styles.halfInput]}>
-                  <Pressable
-                    style={styles.dateInputContainer}
-                    onPress={() => setShowEndDatePicker(true)}
-                  >
-                    <Calendar
-                      size={20}
-                      color="#666666"
-                      style={styles.calendarIcon}
-                    />
-                    <Text style={styles.dateText}>
-                      {value ? formatDateForDisplay(value) : 'Fecha Fin'}
-                    </Text>
-                  </Pressable>
-                  {showEndDatePicker && (
-                    <DateTimePicker
-                      value={value ? new Date(value) : new Date()}
-                      mode="date"
-                      display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                      onChange={(event, selectedDate) => {
-                        setShowEndDatePicker(Platform.OS === 'ios');
-                        if (selectedDate) {
-                          onChange(formatDateForDB(selectedDate));
-                        }
-                      }}
-                    />
-                  )}
-                </View>
-              )}
-            />
-          </View>
+          {/* End Date - Full Width */}
+          <Controller
+            control={control}
+            name="end_date"
+            render={({ field: { onChange, value } }) => (
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Fecha de Fin</Text>
+                <Pressable
+                  style={styles.dateInputContainer}
+                  onPress={() => {
+                    // Close start date picker if open
+                    setShowStartDatePicker(false);
+                    // Toggle end date picker
+                    setShowEndDatePicker(!showEndDatePicker);
+                  }}
+                >
+                  <Calendar
+                    size={20}
+                    color="#666666"
+                    style={styles.calendarIcon}
+                  />
+                  <Text style={styles.dateText}>
+                    {value
+                      ? formatDateForDisplay(value)
+                      : 'Seleccionar fecha de fin'}
+                  </Text>
+                </Pressable>
+                {showEndDatePicker && (
+                  <DateTimePicker
+                    value={value ? new Date(value) : new Date()}
+                    mode="date"
+                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                    onChange={(event, selectedDate) => {
+                      setShowEndDatePicker(false);
+                      if (selectedDate) {
+                        onChange(formatDateForDB(selectedDate));
+                      }
+                    }}
+                  />
+                )}
+                {errors.end_date && (
+                  <Text style={styles.errorMessage}>
+                    {errors.end_date.message}
+                  </Text>
+                )}
+              </View>
+            )}
+          />
 
           <Controller
             control={control}
@@ -724,7 +750,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: '#e9ecef',
     borderRadius: 8,
     padding: 12,
     backgroundColor: '#ffffff',
@@ -734,6 +760,12 @@ const styles = StyleSheet.create({
   },
   dateText: {
     fontSize: 16,
+    color: '#333333',
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 8,
     color: '#333333',
   },
 });
