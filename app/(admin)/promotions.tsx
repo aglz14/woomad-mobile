@@ -130,6 +130,7 @@ export default function ManagePromotionsScreen() {
           )
         `
         )
+        .eq('user_id', userId)
         .order('name');
 
       if (error) throw error;
@@ -283,6 +284,19 @@ export default function ManagePromotionsScreen() {
       <View style={styles.container}>
         <View style={styles.centered}>
           <ActivityIndicator size="large" color="#FF4B4B" />
+        </View>
+      </View>
+    );
+  }
+
+  // Show message if no stores are available
+  if (!loading && stores.length === 0) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.centered}>
+          <Text style={styles.noDataText}>
+            Por favor agrega una tienda primero
+          </Text>
         </View>
       </View>
     );
@@ -767,5 +781,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: 8,
     color: '#333333',
+  },
+  noDataText: {
+    color: '#666666',
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+    paddingHorizontal: 20,
+    marginTop: 20,
   },
 });

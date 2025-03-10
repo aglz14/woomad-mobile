@@ -131,6 +131,7 @@ export default function ManageStoresScreen() {
       const { data, error } = await supabase
         .from('shopping_malls')
         .select('id, name')
+        .eq('user_id', userId)
         .order('name');
 
       if (error) throw error;
@@ -327,6 +328,20 @@ export default function ManageStoresScreen() {
       <View style={styles.container}>
         <View style={styles.centered}>
           <ActivityIndicator size="large" color="#FF4B4B" />
+        </View>
+      </View>
+    );
+  }
+
+  // Show message if no malls are available
+  if (!loading && malls.length === 0) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.centered}>
+          <StoreIcon color="#FF4B4B" size={40} />
+          <Text style={styles.noDataText}>
+            Por favor agrega una plaza o centro comercial primero
+          </Text>
         </View>
       </View>
     );
@@ -803,5 +818,12 @@ const styles = StyleSheet.create({
   deleteButton: {
     borderWidth: 1,
     borderColor: '#FFE5E5',
+  },
+  noDataText: {
+    color: '#666666',
+    fontSize: 16,
+    marginTop: 16,
+    textAlign: 'center',
+    paddingHorizontal: 20,
   },
 });
