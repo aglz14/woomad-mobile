@@ -154,7 +154,9 @@ export default function CenterDetailsScreen() {
     if (selectedCategory) {
       filtered = filtered.filter((store) => {
         // Make sure array_categories exists and is an array
-        const categories = store.array_categories || [];
+        const categories = Array.isArray(store.array_categories)
+          ? store.array_categories
+          : [];
         return categories.includes(selectedCategory);
       });
     }
@@ -165,7 +167,7 @@ export default function CenterDetailsScreen() {
       filtered = filtered.filter(
         (store) =>
           store.name.toLowerCase().includes(query) ||
-          store.description?.toLowerCase().includes(query)
+          (store.description && store.description.toLowerCase().includes(query))
       );
     }
 
@@ -174,8 +176,19 @@ export default function CenterDetailsScreen() {
 
   // Helper function to get category names from IDs
   function getCategoryNames(categoryIds: string[] = []) {
+    if (
+      !categoryIds ||
+      !Array.isArray(categoryIds) ||
+      categoryIds.length === 0
+    ) {
+      return '';
+    }
+
     return categoryIds
-      .map((id) => categories.find((cat) => cat.id === id)?.name)
+      .map((id) => {
+        const category = categories.find((cat) => cat.id === id);
+        return category ? category.name : null;
+      })
       .filter(Boolean)
       .join(', ');
   }
@@ -286,7 +299,9 @@ export default function CenterDetailsScreen() {
                 <View style={styles.storeInfo}>
                   <Text style={styles.storeName}>{store.name}</Text>
                   {store.array_categories &&
-                    store.array_categories.length > 0 && (
+                    Array.isArray(store.array_categories) &&
+                    store.array_categories.length > 0 &&
+                    getCategoryNames(store.array_categories) && (
                       <Text style={styles.storeCategory}>
                         {getCategoryNames(store.array_categories)}
                       </Text>
