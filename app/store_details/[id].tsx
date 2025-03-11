@@ -117,7 +117,14 @@ export default function StoreDetailsScreen() {
         .order('end_date', { ascending: true });
 
       if (promotionsError) throw promotionsError;
-      setPromotions(promotionsData || []);
+
+      // Process promotions to ensure image URLs are handled
+      const processedPromotions = (promotionsData || []).map((promo) => ({
+        ...promo,
+        image: promo.image || '',
+      }));
+
+      setPromotions(processedPromotions);
     } catch (err) {
       console.error('Error fetching store data:', err);
       setError('Error loading store data');
@@ -161,13 +168,14 @@ export default function StoreDetailsScreen() {
             <ArrowLeft size={24} color="#ffffff" />
           </Pressable>
 
-          {store.image ? (
-            <Image source={{ uri: store.image }} style={styles.storeImage} />
-          ) : (
-            <View style={styles.placeholderImage}>
-              <Store size={48} color="#ffffff" />
-            </View>
-          )}
+          <Image
+            source={{
+              uri:
+                store.image ||
+                'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NHx8c3RvcmV8ZW58MHx8MHx8fDA%3D',
+            }}
+            style={styles.storeImage}
+          />
 
           <View style={styles.headerOverlay}>
             <Text style={styles.storeName}>{store.name}</Text>
@@ -215,16 +223,14 @@ export default function StoreDetailsScreen() {
 
               {promotions.map((promotion) => (
                 <View key={promotion.id} style={styles.promotionCard}>
-                  {promotion.image ? (
-                    <Image
-                      source={{ uri: promotion.image }}
-                      style={styles.promotionImage}
-                    />
-                  ) : (
-                    <View style={styles.promotionImagePlaceholder}>
-                      <Tag size={32} color="#ffffff" />
-                    </View>
-                  )}
+                  <Image
+                    source={{
+                      uri:
+                        promotion.image ||
+                        'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8c2hvcHBpbmd8ZW58MHx8MHx8fDA%3D',
+                    }}
+                    style={styles.promotionImage}
+                  />
 
                   <View style={styles.promotionContent}>
                     <Text style={styles.promotionTitle}>{promotion.title}</Text>
