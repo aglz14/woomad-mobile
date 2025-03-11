@@ -122,12 +122,15 @@ export default function CenterDetailsScreen() {
         storesData?.map((store) => {
           // Extract category information from store_categories
           const categoryInfo: CategoryInfo[] =
-            store.store_categories
-              ?.map((sc: any) => ({
-                id: sc.category_id,
-                name: sc.categories?.name,
-              }))
-              .filter((c: any) => c.name) || [];
+            store.store_categories && Array.isArray(store.store_categories)
+              ? store.store_categories
+                  .filter((sc: any) => sc && sc.categories && sc.category_id)
+                  .map((sc: any) => ({
+                    id: sc.category_id,
+                    name: sc.categories?.name,
+                  }))
+                  .filter((c: any) => c && c.name)
+              : [];
 
           return {
             ...store,
@@ -185,12 +188,17 @@ export default function CenterDetailsScreen() {
     if (selectedCategory) {
       filtered = filtered.filter((store) => {
         // Check if the store has the selected category in its categoryInfo
-        if (!store.categoryInfo || !Array.isArray(store.categoryInfo)) {
+        if (
+          !store.categoryInfo ||
+          !Array.isArray(store.categoryInfo) ||
+          store.categoryInfo.length === 0
+        ) {
           return false;
         }
 
         return store.categoryInfo.some(
-          (category: CategoryInfo) => category.id === selectedCategory
+          (category: CategoryInfo) =>
+            category && category.id === selectedCategory
         );
       });
     }
@@ -220,6 +228,7 @@ export default function CenterDetailsScreen() {
     }
 
     return store.categoryInfo
+      .filter((category: CategoryInfo) => category && category.name)
       .map((category: CategoryInfo) => category.name)
       .filter(Boolean)
       .join(', ');
@@ -332,7 +341,8 @@ export default function CenterDetailsScreen() {
                   <Text style={styles.storeName}>{store.name}</Text>
                   {store.categoryInfo &&
                     Array.isArray(store.categoryInfo) &&
-                    store.categoryInfo.length > 0 && (
+                    store.categoryInfo.length > 0 &&
+                    getCategoryNames(store) && (
                       <Text style={styles.storeCategory}>
                         {getCategoryNames(store)}
                       </Text>
