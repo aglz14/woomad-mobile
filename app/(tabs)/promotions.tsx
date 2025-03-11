@@ -147,7 +147,7 @@ export default function PromotionsScreen() {
             id: promo.id,
             title: promo.title,
             description: promo.description,
-            image: promo.image,
+            image: promo.image || '',
             end_date: promo.end_date,
             store: {
               name: storeObj?.name || '',
