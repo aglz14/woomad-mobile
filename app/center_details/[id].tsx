@@ -26,6 +26,11 @@ type Category = {
   name: string;
 };
 
+type CategoryInfo = {
+  id: string;
+  name: string;
+};
+
 type Store = {
   id: string;
   name: string;
@@ -36,6 +41,7 @@ type Store = {
   website: string;
   image: string;
   array_categories?: string[];
+  categoryInfo?: CategoryInfo[];
   active_promotions_count?: number;
 };
 
@@ -83,7 +89,7 @@ export default function CenterDetailsScreen() {
       if (mallError) throw mallError;
       setMall(mallData);
 
-      // Fetch stores for this mall with array_categories
+      // Fetch stores for this mall with proper category information
       const { data: storesData, error: storesError } = await supabase
         .from('stores')
         .select(
@@ -96,7 +102,14 @@ export default function CenterDetailsScreen() {
           phone,
           website,
           image,
-          array_categories
+          array_categories,
+          store_categories(
+            category_id,
+            categories(
+              id,
+              name
+            )
+          )
         `
         )
         .eq('mall_id', id)
@@ -104,12 +117,30 @@ export default function CenterDetailsScreen() {
 
       if (storesError) throw storesError;
 
+      // Process stores to include category information
+      const processedStores =
+        storesData?.map((store) => {
+          // Extract category information from store_categories
+          const categoryInfo: CategoryInfo[] =
+            store.store_categories
+              ?.map((sc: any) => ({
+                id: sc.category_id,
+                name: sc.categories?.name,
+              }))
+              .filter((c: any) => c.name) || [];
+
+          return {
+            ...store,
+            categoryInfo, // Add processed category information
+          };
+        }) || [];
+
       // Get current date for active promotions check
       const now = new Date().toISOString();
 
       // Count active promotions for each store
       const storesWithPromotions = await Promise.all(
-        (storesData || []).map(async (store) => {
+        processedStores.map(async (store) => {
           const { count } = await supabase
             .from('promotions')
             .select('*', { count: 'exact', head: true })
@@ -153,11 +184,14 @@ export default function CenterDetailsScreen() {
     // Apply category filter if selected
     if (selectedCategory) {
       filtered = filtered.filter((store) => {
-        // Make sure array_categories exists and is an array
-        const categories = Array.isArray(store.array_categories)
-          ? store.array_categories
-          : [];
-        return categories.includes(selectedCategory);
+        // Check if the store has the selected category in its categoryInfo
+        if (!store.categoryInfo || !Array.isArray(store.categoryInfo)) {
+          return false;
+        }
+
+        return store.categoryInfo.some(
+          (category: CategoryInfo) => category.id === selectedCategory
+        );
       });
     }
 
@@ -174,21 +208,19 @@ export default function CenterDetailsScreen() {
     setFilteredStores(filtered);
   }
 
-  // Helper function to get category names from IDs
-  function getCategoryNames(categoryIds: string[] = []) {
+  // Helper function to get category names directly from store's categoryInfo
+  function getCategoryNames(store: Store) {
     if (
-      !categoryIds ||
-      !Array.isArray(categoryIds) ||
-      categoryIds.length === 0
+      !store ||
+      !store.categoryInfo ||
+      !Array.isArray(store.categoryInfo) ||
+      store.categoryInfo.length === 0
     ) {
       return '';
     }
 
-    return categoryIds
-      .map((id) => {
-        const category = categories.find((cat) => cat.id === id);
-        return category ? category.name : null;
-      })
+    return store.categoryInfo
+      .map((category: CategoryInfo) => category.name)
       .filter(Boolean)
       .join(', ');
   }
@@ -298,12 +330,11 @@ export default function CenterDetailsScreen() {
               >
                 <View style={styles.storeInfo}>
                   <Text style={styles.storeName}>{store.name}</Text>
-                  {store.array_categories &&
-                    Array.isArray(store.array_categories) &&
-                    store.array_categories.length > 0 &&
-                    getCategoryNames(store.array_categories) && (
+                  {store.categoryInfo &&
+                    Array.isArray(store.categoryInfo) &&
+                    store.categoryInfo.length > 0 && (
                       <Text style={styles.storeCategory}>
-                        {getCategoryNames(store.array_categories)}
+                        {getCategoryNames(store)}
                       </Text>
                     )}
                   <View style={styles.storeDetails}>
