@@ -1,4 +1,12 @@
-import { View, Text, StyleSheet, ScrollView, Image, Pressable, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Image,
+  Pressable,
+  ActivityIndicator,
+} from 'react-native';
 import { router } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useEffect, useState } from 'react';
@@ -53,15 +61,22 @@ export default function HomeScreen() {
     })();
   }, []);
 
-  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+  const calculateDistance = (
+    lat1: number,
+    lon1: number,
+    lat2: number,
+    lon2: number
+  ): number => {
     const R = 6371;
     const dLat = (lat2 - lat1) * (Math.PI / 180);
     const dLon = (lon2 - lon1) * (Math.PI / 180);
-    const a = 
-      Math.sin(dLat/2) * Math.sin(dLat/2) +
-      Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * 
-      Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * (Math.PI / 180)) *
+        Math.cos(lat2 * (Math.PI / 180)) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
   };
 
@@ -73,7 +88,8 @@ export default function HomeScreen() {
       // Fetch promotions
       const { data: promotionsData, error: promotionsError } = await supabase
         .from('promotions')
-        .select(`
+        .select(
+          `
           *, 
           store:stores!promotions_store_id_fkey (
             id,
@@ -85,36 +101,45 @@ export default function HomeScreen() {
               longitude
             )
           )
-        `)
+        `
+        )
         .gt('end_date', now);
 
       if (promotionsError) throw promotionsError;
 
       // Calculate distances for promotions
-      const promotionsWithDistance = (promotionsData || []).map(promo => {
+      const promotionsWithDistance = (promotionsData || []).map((promo) => {
         const store = Array.isArray(promo.store) ? promo.store[0] : promo.store;
-        const mall = store?.mall && Array.isArray(store.mall) ? store.mall[0] : store?.mall;
-        
-        const distance = mall && userLocation ? calculateDistance(
-          userLocation.coords.latitude,
-          userLocation.coords.longitude,
-          mall.latitude,
-          mall.longitude
-        ) : Infinity;
+        const mall =
+          store?.mall && Array.isArray(store.mall)
+            ? store.mall[0]
+            : store?.mall;
+
+        const distance =
+          mall && userLocation
+            ? calculateDistance(
+                userLocation.coords.latitude,
+                userLocation.coords.longitude,
+                mall.latitude,
+                mall.longitude
+              )
+            : Infinity;
 
         return {
           id: promo.id,
           title: promo.title,
-          image: promo.image,
+          image: promo.image || '',
           distance,
           store: {
             name: store?.name || '',
-            mall: mall ? {
-              name: mall.name,
-              latitude: mall.latitude,
-              longitude: mall.longitude
-            } : undefined
-          }
+            mall: mall
+              ? {
+                  name: mall.name,
+                  latitude: mall.latitude,
+                  longitude: mall.longitude,
+                }
+              : undefined,
+          },
         };
       });
 
@@ -131,33 +156,35 @@ export default function HomeScreen() {
       if (mallsError) throw mallsError;
 
       // Calculate distances for malls
-      const mallsWithDistance = await Promise.all((mallsData || []).map(async mall => {
-        const { count } = await supabase
-          .from('stores')
-          .select('*', { count: 'exact', head: true })
-          .eq('mall_id', mall.id);
+      const mallsWithDistance = await Promise.all(
+        (mallsData || []).map(async (mall) => {
+          const { count } = await supabase
+            .from('stores')
+            .select('*', { count: 'exact', head: true })
+            .eq('mall_id', mall.id);
 
-        const distance = calculateDistance(
-          userLocation.coords.latitude,
-          userLocation.coords.longitude,
-          mall.latitude,
-          mall.longitude
-        );
+          const distance = calculateDistance(
+            userLocation.coords.latitude,
+            userLocation.coords.longitude,
+            mall.latitude,
+            mall.longitude
+          );
 
-        return {
-          ...mall,
-          store_count: count || 0,
-          distance: `${distance.toFixed(1)} km`,
-          distance_value: distance,
-        };
-      }));
+          return {
+            ...mall,
+            store_count: count || 0,
+            distance: `${distance.toFixed(1)} km`,
+            distance_value: distance,
+          };
+        })
+      );
 
       const nearestMalls = mallsWithDistance
         .sort((a, b) => a.distance_value - b.distance_value)
         .slice(0, 5); // Get only first 5 malls
 
       setPromotions(nearestPromotions);
-      setMalls(nearestMalls); 
+      setMalls(nearestMalls);
       setError(null);
     } catch (err) {
       console.error('Error fetching data:', err);
@@ -179,19 +206,33 @@ export default function HomeScreen() {
     <ScrollView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.greeting}>¡Hola!</Text>
-        <Text style={styles.subtitle}>Descubre las mejores ofertas cerca de ti</Text>
+        <Text style={styles.subtitle}>
+          Descubre las mejores ofertas cerca de ti
+        </Text>
         {error && <Text style={styles.error}>{error}</Text>}
       </View>
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Promociones Destacadas</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.promotionsScroll}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.promotionsScroll}
+        >
           {promotions.map((promo) => (
             <Pressable
               key={promo.id}
               style={styles.promotionCard}
-              onPress={() => router.push('/promotions')}>
-              <Image source={{ uri: promo.image }} style={styles.promotionImage} />
+              onPress={() => router.push('/promotions')}
+            >
+              <Image
+                source={{
+                  uri:
+                    promo.image ||
+                    'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8c2hvcHBpbmd8ZW58MHx8MHx8fDA%3D',
+                }}
+                style={styles.promotionImage}
+              />
               <View style={styles.promotionInfo}>
                 <Text style={styles.promotionTitle}>{promo.title}</Text>
                 <Text style={styles.promotionStore}>{promo.store?.name}</Text>
@@ -210,11 +251,14 @@ export default function HomeScreen() {
           <Pressable
             key={mall.id}
             style={styles.mallCard}
-            onPress={() => router.push(`/center_details/${mall.id}`)}>
+            onPress={() => router.push(`/center_details/${mall.id}`)}
+          >
             <Image source={{ uri: mall.image }} style={styles.mallImage} />
             <View style={styles.mallInfo}>
               <Text style={styles.mallName}>{mall.name}</Text>
-              <Text style={styles.mallDistance}>{mall.distance} • {mall.store_count} negocios</Text>
+              <Text style={styles.mallDistance}>
+                {mall.distance} • {mall.store_count} negocios
+              </Text>
             </View>
           </Pressable>
         ))}
