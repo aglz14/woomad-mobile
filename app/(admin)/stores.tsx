@@ -28,6 +28,12 @@ type Category = {
   name: string;
 };
 
+// Define a type for category info
+type CategoryInfo = {
+  id: string;
+  name: string;
+};
+
 const defaultFormValues = {
   name: '',
   description: '',
@@ -110,6 +116,13 @@ export default function ManageStoresScreen() {
           shopping_malls (
             id,
             name
+          ),
+          store_categories(
+            category_id,
+            categories(
+              id,
+              name
+            )
           )
         `
         )
@@ -117,7 +130,25 @@ export default function ManageStoresScreen() {
         .order('name');
 
       if (error) throw error;
-      setStores(data || []);
+
+      // Process stores to include category information
+      const processedStores = (data || []).map((store) => {
+        // Extract category information from store_categories
+        const categoryInfo: CategoryInfo[] =
+          store.store_categories
+            ?.map((sc: any) => ({
+              id: sc.category_id,
+              name: sc.categories?.name,
+            }))
+            .filter((c: any) => c.name) || [];
+
+        return {
+          ...store,
+          categoryInfo, // Add processed category information
+        };
+      });
+
+      setStores(processedStores);
     } catch (err) {
       console.error('Error fetching stores:', err);
       setError('Error al cargar negocios. Por favor, intente de nuevo.');
@@ -247,16 +278,16 @@ export default function ManageStoresScreen() {
 
     setEditingId(store.id);
 
-    // Ensure array_categories is always an array
-    const categories = Array.isArray(store.array_categories)
-      ? store.array_categories
+    // Extract category IDs from categoryInfo
+    const categoryIds = Array.isArray(store.categoryInfo)
+      ? store.categoryInfo.map((cat: CategoryInfo) => cat.id)
       : [];
 
     reset({
       name: store.name,
       description: store.description || '',
       mall_id: store.mall_id,
-      categories: categories,
+      categories: categoryIds,
       image: store.image || '',
       phone: store.phone || '',
       website: store.website || '',
@@ -297,9 +328,18 @@ export default function ManageStoresScreen() {
   }
 
   // Helper function to get category names from IDs
-  function getCategoryNames(categoryIds: string[] = []) {
-    return categoryIds
-      .map((id) => categories.find((cat) => cat.id === id)?.name)
+  function getCategoryNames(store: any) {
+    if (
+      !store ||
+      !store.categoryInfo ||
+      !Array.isArray(store.categoryInfo) ||
+      store.categoryInfo.length === 0
+    ) {
+      return '';
+    }
+
+    return store.categoryInfo
+      .map((category: CategoryInfo) => category.name)
       .filter(Boolean)
       .join(', ');
   }
@@ -588,10 +628,11 @@ export default function ManageStoresScreen() {
                 <Text style={styles.storeDetails}>
                   {store.shopping_malls?.name || 'Sin plaza asignada'}
                 </Text>
-                {store.array_categories &&
-                  store.array_categories.length > 0 && (
+                {store.categoryInfo &&
+                  Array.isArray(store.categoryInfo) &&
+                  store.categoryInfo.length > 0 && (
                     <Text style={styles.storeCategory}>
-                      {getCategoryNames(store.array_categories)}
+                      {getCategoryNames(store)}
                     </Text>
                   )}
               </View>
