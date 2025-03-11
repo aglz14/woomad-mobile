@@ -204,6 +204,8 @@ export default function ManageStoresScreen() {
         user_id: userId,
       };
 
+      let storeId = editingId;
+
       if (editingId) {
         // First check if the store belongs to the current user
         const { data: existingStore, error: fetchError } = await supabase
@@ -225,11 +227,41 @@ export default function ManageStoresScreen() {
 
         if (updateError) throw updateError;
       } else {
-        const { error: insertError } = await supabase
+        // Insert new store and get the ID
+        const { data: newStore, error: insertError } = await supabase
           .from('stores')
-          .insert(formattedData);
+          .insert(formattedData)
+          .select('id')
+          .single();
 
         if (insertError) throw insertError;
+
+        storeId = newStore.id;
+      }
+
+      // Now handle the store_categories relation
+      if (storeId) {
+        // First, delete existing relations for this store
+        const { error: deleteError } = await supabase
+          .from('store_categories')
+          .delete()
+          .eq('store_id', storeId);
+
+        if (deleteError) throw deleteError;
+
+        // Then insert new relations for each selected category
+        if (Array.isArray(data.categories) && data.categories.length > 0) {
+          const categoryRelations = data.categories.map((categoryId) => ({
+            store_id: storeId,
+            category_id: categoryId,
+          }));
+
+          const { error: insertRelationsError } = await supabase
+            .from('store_categories')
+            .insert(categoryRelations);
+
+          if (insertRelationsError) throw insertRelationsError;
+        }
       }
 
       // Clear form and reset to default values
