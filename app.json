@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Woomad Commerce",
-    "slug": "woomad-commerce",
+    "slug": "mall-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -42,7 +42,7 @@
         "origin": false
       },
       "eas": {
-        "projectId": "c2fd6d37-e3d0-4624-ade3-8209ef877462"
+        "projectId": "1d14fe25-cbae-4569-b7fe-e4e71ce02d13"
       }
     }
   }
