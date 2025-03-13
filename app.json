@@ -8,11 +8,7 @@
     "scheme": "woomad",
     "userInterfaceStyle": "automatic",
     "sdkVersion": "52.0.0",
-    "platforms": [
-      "ios",
-      "android",
-      "web"
-    ],
+    "platforms": ["ios", "android", "web"],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.woomad.app",
@@ -34,22 +30,18 @@
       "bundler": "metro",
       "favicon": "./assets/favicon.png"
     },
-    "plugins": [
-      "expo-router"
-    ],
+    "plugins": ["expo-router"],
     "experiments": {
       "typedRoutes": true
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "newArchEnabled": true,
     "extra": {
       "router": {
         "origin": false
       },
       "eas": {
-        "projectId": "d043cd2c-c01c-4780-b4c2-80f94d22227c"
+        "projectId": "c2fd6d37-e3d0-4624-ade3-8209ef877462"
       }
     }
   }
