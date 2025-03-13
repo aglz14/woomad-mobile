@@ -8,6 +8,7 @@
     "scheme": "woomad",
     "userInterfaceStyle": "automatic",
     "sdkVersion": "52.0.0",
+    "owner": "aglz14",
     "platforms": ["ios", "android", "web"],
     "ios": {
       "supportsTablet": true,
