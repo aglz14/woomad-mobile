@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { Search, Tag, Store, MapPin, Calendar } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { PostgrestError } from '@supabase/supabase-js';
 import * as Location from 'expo-location';
 
@@ -51,6 +51,10 @@ export default function PromotionsScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [page, setPage] = useState(0);
+  const [hasMorePromotions, setHasMorePromotions] = useState(true);
+  const PROMOTIONS_PER_PAGE = 10;
 
   useEffect(() => {
     (async () => {
@@ -59,49 +63,82 @@ export default function PromotionsScreen() {
         if (status !== 'granted') {
           setError('Permission to access location was denied');
           // Still fetch promotions even without location
-          fetchPromotions(null);
+          fetchInitialPromotions(null);
           return;
         }
 
         const currentLocation = await Location.getCurrentPositionAsync({});
         setLocation(currentLocation);
-        fetchPromotions(currentLocation);
+        fetchInitialPromotions(currentLocation);
       } catch (err) {
         console.error('Error getting location:', err);
         setError('Error accessing location services');
         // Still fetch promotions even without location
-        fetchPromotions(null);
+        fetchInitialPromotions(null);
       }
     })();
   }, []);
 
+  useEffect(() => {
+    if (promotions.length > 0) {
+      handleSearch(searchQuery);
+    }
+  }, [promotions, searchQuery]);
+
   // Calculate distance between two points using Haversine formula
-  const calculateDistance = (
-    lat1: number,
-    lon1: number,
-    lat2: number,
-    lon2: number
-  ): number => {
-    if (!lat1 || !lon1 || !lat2 || !lon2) return Infinity;
+  const calculateDistance = useCallback(
+    (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+      if (!lat1 || !lon1 || !lat2 || !lon2) return Infinity;
 
-    const R = 6371; // Earth's radius in kilometers
-    const dLat = (lat2 - lat1) * (Math.PI / 180);
-    const dLon = (lon2 - lon1) * (Math.PI / 180);
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(lat1 * (Math.PI / 180)) *
-        Math.cos(lat2 * (Math.PI / 180)) *
-        Math.sin(dLon / 2) *
-        Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  };
+      const R = 6371; // Earth's radius in kilometers
+      const dLat = (lat2 - lat1) * (Math.PI / 180);
+      const dLon = (lon2 - lon1) * (Math.PI / 180);
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * (Math.PI / 180)) *
+          Math.cos(lat2 * (Math.PI / 180)) *
+          Math.sin(dLon / 2) *
+          Math.sin(dLon / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
+    },
+    []
+  );
 
-  async function fetchPromotions(userLocation: Location.LocationObject | null) {
+  // Initial load of promotions
+  async function fetchInitialPromotions(
+    userLocation: Location.LocationObject | null
+  ) {
     try {
       setLoading(true);
+      // Reset pagination state
+      setPage(0);
+      setPromotions([]);
+      setFilteredPromotions([]);
+      setHasMorePromotions(true);
+
+      await loadMorePromotions(0, userLocation);
+    } catch (err) {
+      console.error('Error in initial promotions fetch:', err);
+      setError('Error al cargar las promociones');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // Function to load more promotions (paginated)
+  async function loadMorePromotions(
+    pageToLoad: number,
+    userLocation: Location.LocationObject | null
+  ) {
+    if (isLoadingMore) return;
+
+    try {
+      setIsLoadingMore(true);
+      console.log(`Loading promotions page ${pageToLoad}`);
 
       const now = new Date().toISOString();
+      const startTime = Date.now();
 
       const { data, error: fetchError } = await supabase
         .from('promotions')
@@ -118,13 +155,41 @@ export default function PromotionsScreen() {
             )
           )`
         )
-        .gt('end_date', now);
+        .gt('end_date', now)
+        .range(
+          pageToLoad * PROMOTIONS_PER_PAGE,
+          (pageToLoad + 1) * PROMOTIONS_PER_PAGE - 1
+        );
+
+      console.log(`Promotions fetch took ${Date.now() - startTime}ms`);
+      console.log(
+        `Retrieved ${data?.length || 0} promotions for page ${pageToLoad}`
+      );
 
       if (fetchError) throw fetchError;
 
+      if (!data || data.length === 0) {
+        console.log('No more promotions to load');
+        setHasMorePromotions(false);
+        return;
+      }
+
+      // Set hasMorePromotions to false if we received fewer items than expected
+      if (data.length < PROMOTIONS_PER_PAGE) {
+        setHasMorePromotions(false);
+      }
+
       // Process promotions with safe access to nested properties
-      const processedPromotions: Promotion[] = (data || []).map(
-        (promo: RawPromotion) => {
+      console.log(`Processing promotion data for page ${pageToLoad}...`);
+      const processStartTime = Date.now();
+
+      // Process in batches to prevent UI blocking
+      const batchSize = 5;
+      let processedPromotions: Promotion[] = [];
+
+      for (let i = 0; i < data.length; i += batchSize) {
+        const batch = data.slice(i, i + batchSize);
+        const batchProcessed = batch.map((promo: RawPromotion) => {
           // Safely access nested properties
           const storeData = promo.store || {};
           const storeObj = Array.isArray(storeData) ? storeData[0] : storeData;
@@ -161,7 +226,22 @@ export default function PromotionsScreen() {
             },
             distance,
           };
+        });
+
+        processedPromotions = [...processedPromotions, ...batchProcessed];
+
+        // Allow UI to update if needed
+        if (i + batchSize < data.length) {
+          await new Promise((resolve) => setTimeout(resolve, 0));
         }
+      }
+
+      console.log(
+        `Promotion data processing took ${Date.now() - processStartTime}ms`
+      );
+      const totalTime = Date.now() - startTime;
+      console.log(
+        `Total data fetch for page ${pageToLoad} took ${totalTime}ms`
       );
 
       // Filter by distance if location is available
@@ -173,15 +253,34 @@ export default function PromotionsScreen() {
             .sort((a, b) => (a.distance || Infinity) - (b.distance || Infinity))
         : processedPromotions;
 
-      setPromotions(filteredByDistance);
-      setFilteredPromotions(filteredByDistance);
+      // Append new promotions to existing ones
+      setPromotions((prevPromotions) => [
+        ...prevPromotions,
+        ...filteredByDistance,
+      ]);
+      setPage(pageToLoad);
+
+      // Update filtered promotions if there's no search query
+      if (!searchQuery) {
+        setFilteredPromotions((prevFiltered) => [
+          ...prevFiltered,
+          ...filteredByDistance,
+        ]);
+      } else {
+        // Re-apply search filter on all promotions
+        handleSearch(searchQuery);
+      }
+
       setError(null);
     } catch (err) {
       const error = err as PostgrestError;
-      setError('Error al cargar las promociones');
-      console.error('Error fetching promotions:', error.message);
+      console.error('Error loading more promotions:', error.message);
+      // Don't set global error on pagination failures, just log it
+      if (pageToLoad === 0) {
+        setError('Error al cargar las promociones');
+      }
     } finally {
-      setLoading(false);
+      setIsLoadingMore(false);
     }
   }
 
@@ -210,6 +309,13 @@ export default function PromotionsScreen() {
       month: '2-digit',
       year: 'numeric',
     });
+  };
+
+  // Helper function to handle loading more promotions
+  const handleLoadMore = () => {
+    if (hasMorePromotions && !isLoadingMore && !loading) {
+      loadMorePromotions(page + 1, location);
+    }
   };
 
   if (loading) {
@@ -243,46 +349,97 @@ export default function PromotionsScreen() {
         {error && <Text style={styles.error}>{error}</Text>}
       </View>
 
-      <ScrollView style={styles.content}>
-        {filteredPromotions.map((promo) => (
-          <Pressable key={promo.id} style={styles.promotionCard}>
-            <Image
-              source={{
-                uri:
-                  promo.image ||
-                  'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=800&fit=crop&q=80',
-              }}
-              style={styles.promotionImage}
-            />
-            <View style={styles.promotionInfo}>
-              <View style={styles.tagContainer}>
-                <Tag size={16} color="#FF4B4B" />
-                <Text style={styles.promotionTitle}>{promo.title}</Text>
-              </View>
+      <ScrollView
+        style={styles.content}
+        onMomentumScrollEnd={({ nativeEvent }) => {
+          const isCloseToBottom = ({
+            contentOffset,
+            contentSize,
+            layoutMeasurement,
+          }) => {
+            const paddingToBottom = 20;
+            return (
+              layoutMeasurement.height + contentOffset.y >=
+              contentSize.height - paddingToBottom
+            );
+          };
 
-              <Text style={styles.description}>{promo.description}</Text>
+          if (isCloseToBottom(nativeEvent)) {
+            handleLoadMore();
+          }
+        }}
+      >
+        {filteredPromotions.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyStateText}>
+              {isLoadingMore
+                ? 'Cargando promociones...'
+                : 'No se encontraron promociones'}
+            </Text>
+          </View>
+        ) : (
+          <>
+            {filteredPromotions.map((promo) => (
+              <Pressable key={promo.id} style={styles.promotionCard}>
+                <Image
+                  source={{
+                    uri:
+                      promo.image ||
+                      'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=800&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8c2hvcHBpbmd8ZW58MHx8MHx8fDA%3D',
+                  }}
+                  style={styles.promotionImage}
+                />
+                <View style={styles.promotionContent}>
+                  <Text style={styles.promotionTitle}>{promo.title}</Text>
+                  <Text style={styles.promotionDescription}>
+                    {promo.description}
+                  </Text>
 
-              <View style={styles.storeInfo}>
-                <View style={styles.infoRow}>
-                  <Store size={16} color="#666666" />
-                  <Text style={styles.storeName}>{promo.store.name}</Text>
+                  <View style={styles.promotionDetails}>
+                    <View style={styles.storeInfo}>
+                      <View style={styles.infoItem}>
+                        <Store size={16} color="#666666" />
+                        <Text style={styles.infoText}>{promo.store.name}</Text>
+                      </View>
+
+                      {promo.store.mall && (
+                        <View style={styles.infoItem}>
+                          <MapPin size={16} color="#666666" />
+                          <Text style={styles.infoText}>
+                            {promo.store.mall.name}
+                            {promo.distance !== undefined && (
+                              <Text style={styles.distance}>
+                                {' '}
+                                • {promo.distance.toFixed(1)} km
+                              </Text>
+                            )}
+                          </Text>
+                        </View>
+                      )}
+
+                      <View style={styles.infoItem}>
+                        <Calendar size={16} color="#666666" />
+                        <Text style={styles.infoText}>
+                          Válido hasta {formatDate(promo.end_date)}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
                 </View>
-                <View style={styles.infoRow}>
-                  <MapPin size={16} color="#666666" />
-                  <Text style={styles.mallName}>{promo.store.mall?.name}</Text>
-                </View>
-              </View>
+              </Pressable>
+            ))}
 
-              <View style={styles.validityContainer}>
-                <Calendar size={16} color="#FF4B4B" />
-                <Text style={styles.validUntil}>
-                  Válido hasta: {formatDate(promo.end_date)} •{' '}
-                  {promo.distance?.toFixed(1)}km
+            {/* Loading indicator for more promotions */}
+            {isLoadingMore && (
+              <View style={styles.loadingMore}>
+                <ActivityIndicator size="small" color="#FF4B4B" />
+                <Text style={styles.loadingMoreText}>
+                  Cargando más promociones...
                 </Text>
               </View>
-            </View>
-          </Pressable>
-        ))}
+            )}
+          </>
+        )}
       </ScrollView>
     </View>
   );
@@ -358,56 +515,62 @@ const styles = StyleSheet.create({
     height: 200,
     backgroundColor: '#f0f0f0',
   },
-  promotionInfo: {
+  promotionContent: {
     padding: 16,
-  },
-  tagContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
   },
   promotionTitle: {
     fontSize: 20,
     fontWeight: '600',
     color: '#1a1a1a',
-    marginLeft: 8,
+    marginBottom: 8,
   },
-  description: {
+  promotionDescription: {
     fontSize: 16,
     color: '#666666',
     marginBottom: 16,
     lineHeight: 24,
   },
-  storeInfo: {
+  promotionDetails: {
     marginBottom: 16,
   },
-  infoRow: {
+  storeInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
   },
-  storeName: {
+  infoItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  infoText: {
     fontSize: 16,
     color: '#1a1a1a',
-    marginLeft: 8,
     fontWeight: '500',
   },
-  mallName: {
-    fontSize: 14,
-    color: '#666666',
-    marginLeft: 8,
-  },
-  validityContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
-  },
-  validUntil: {
+  distance: {
     fontSize: 14,
     color: '#FF4B4B',
     fontWeight: '500',
+  },
+  emptyState: {
+    padding: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyStateText: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+  },
+  loadingMore: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+  },
+  loadingMoreText: {
+    fontSize: 14,
+    color: '#666',
     marginLeft: 8,
   },
 });
