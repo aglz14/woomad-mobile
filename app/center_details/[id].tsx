@@ -109,6 +109,10 @@ export default function CenterDetailsScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [debugInfo, setDebugInfo] = useState<string | null>(null);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [page, setPage] = useState(0);
+  const [hasMoreStores, setHasMoreStores] = useState(true);
+  const STORES_PER_PAGE = 20;
 
   useEffect(() => {
     console.log(`CenterDetailsScreen mounted with mall ID: ${id}`);
@@ -142,11 +146,34 @@ export default function CenterDetailsScreen() {
       if (mallError) throw mallError;
       setMall(mallData);
 
-      // Fetch stores for this mall with proper category information
-      console.log(`Starting to fetch stores for mall ID: ${id}`);
-      const storesStartTime = Date.now();
+      // Reset pagination when loading a new mall
+      setPage(0);
+      setHasMoreStores(true);
+      setStores([]);
+      setFilteredStores([]);
 
-      // Optimize the query to limit the number of stores if there are too many
+      // Fetch first page of stores
+      await loadMoreStores(0);
+    } catch (err) {
+      console.error('Error fetching mall data:', err);
+      setError('Error loading mall data');
+      // Store debug info in console only, not in UI
+      console.log(
+        `Debug Info: Error: ${err instanceof Error ? err.message : String(err)}`
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function loadMoreStores(pageToLoad: number) {
+    if (!id || isLoadingMore) return;
+
+    try {
+      setIsLoadingMore(true);
+      console.log(`Loading stores page ${pageToLoad} for mall ID: ${id}`);
+
+      const startTime = Date.now();
       const { data: storesData, error: storesError } = await supabase
         .from('stores')
         .select(
@@ -170,59 +197,52 @@ export default function CenterDetailsScreen() {
         `
         )
         .eq('mall_id', id)
-        .order('name', { ascending: true });
-      // Add a limit if needed for performance
-      // .limit(50);
+        .order('name', { ascending: true })
+        .range(
+          pageToLoad * STORES_PER_PAGE,
+          (pageToLoad + 1) * STORES_PER_PAGE - 1
+        );
 
-      console.log(`Stores fetch took ${Date.now() - storesStartTime}ms`);
-      console.log(`Retrieved ${storesData?.length || 0} stores`);
+      console.log(`Stores fetch took ${Date.now() - startTime}ms`);
+      console.log(
+        `Retrieved ${storesData?.length || 0} stores for page ${pageToLoad}`
+      );
 
       if (storesError) throw storesError;
 
       if (!storesData || storesData.length === 0) {
-        console.log('No stores found for this mall');
-        setStores([]);
-        setFilteredStores([]);
-        setLoading(false);
+        console.log('No more stores to load');
+        setHasMoreStores(false);
         return;
       }
 
+      // Set hasMoreStores to false if we received fewer items than the page size
+      if (storesData.length < STORES_PER_PAGE) {
+        setHasMoreStores(false);
+      }
+
       // Process stores to include category information
-      console.log(`Processing store data...`);
+      console.log(`Processing store data for page ${pageToLoad}...`);
       const processStartTime = Date.now();
 
-      const storeCount = storesData.length;
-      const batchSize = 20; // Process stores in smaller batches to avoid UI freezing
-      let processedStores: Store[] = [];
+      const processedStores = storesData.map((store) => {
+        // Extract category information from store_categories
+        const categoryInfo: CategoryInfo[] =
+          store.store_categories && Array.isArray(store.store_categories)
+            ? store.store_categories
+                .filter((sc: any) => sc && sc.categories && sc.category_id)
+                .map((sc: any) => ({
+                  id: sc.category_id,
+                  name: sc.categories?.name,
+                }))
+                .filter((c: any) => c && c.name)
+            : [];
 
-      // Process in batches to prevent UI blocking
-      for (let i = 0; i < storeCount; i += batchSize) {
-        const batch = storesData.slice(i, i + batchSize);
-        const batchProcessed = batch.map((store) => {
-          // Extract category information from store_categories
-          const categoryInfo: CategoryInfo[] =
-            store.store_categories && Array.isArray(store.store_categories)
-              ? store.store_categories
-                  .filter((sc: any) => sc && sc.categories && sc.category_id)
-                  .map((sc: any) => ({
-                    id: sc.category_id,
-                    name: sc.categories?.name,
-                  }))
-                  .filter((c: any) => c && c.name)
-              : [];
-
-          return {
-            ...store,
-            categoryInfo, // Add processed category information
-          };
-        });
-        processedStores = [...processedStores, ...batchProcessed];
-
-        // Allow UI to update if needed
-        if (i + batchSize < storeCount) {
-          await new Promise((resolve) => setTimeout(resolve, 0));
-        }
-      }
+        return {
+          ...store,
+          categoryInfo, // Add processed category information
+        };
+      });
 
       console.log(
         `Store data processing took ${Date.now() - processStartTime}ms`
@@ -231,15 +251,15 @@ export default function CenterDetailsScreen() {
       // Get current date for active promotions check
       const now = new Date().toISOString();
 
-      // Count active promotions for each store - do this in batches too
+      // Count active promotions for each store in smaller batches
       console.log(
         `Counting promotions for ${processedStores.length} stores...`
       );
       const promotionsStartTime = Date.now();
 
+      const batchSize = 5; // Process promotions in even smaller batches
       let storesWithPromotions: Store[] = [];
 
-      // Process promotions in smaller batches to prevent UI blocking
       for (let i = 0; i < processedStores.length; i += batchSize) {
         const batch = processedStores.slice(i, i + batchSize);
         const batchPromises = batch.map(async (store) => {
@@ -279,21 +299,28 @@ export default function CenterDetailsScreen() {
         `Promotions counting took ${Date.now() - promotionsStartTime}ms`
       );
       const totalTime = Date.now() - startTime;
-      console.log(`Total data fetch took ${totalTime}ms`);
-
-      setDebugInfo(
-        `Mall ID: ${id}, Stores: ${storesWithPromotions.length}, Fetch time: ${totalTime}ms`
+      console.log(
+        `Total data fetch for page ${pageToLoad} took ${totalTime}ms`
       );
-      setStores(storesWithPromotions || []);
-      setFilteredStores(storesWithPromotions || []);
+
+      // Log debug info to console only, not to state to keep it off the UI
+      console.log(
+        `Debug Info: Mall ID: ${id}, Page: ${pageToLoad}, Stores: ${storesWithPromotions.length}, Fetch time: ${totalTime}ms`
+      );
+
+      // Append new stores to existing ones
+      setStores((prevStores) => [...prevStores, ...storesWithPromotions]);
+      setPage(pageToLoad);
     } catch (err) {
-      console.error('Error fetching mall data:', err);
-      setError('Error loading mall data');
-      setDebugInfo(
-        `Error: ${err instanceof Error ? err.message : String(err)}`
+      console.error(`Error loading more stores:`, err);
+      // Log to console only
+      console.log(
+        `Debug Info: Error loading page ${pageToLoad}: ${
+          err instanceof Error ? err.message : String(err)
+        }`
       );
     } finally {
-      setLoading(false);
+      setIsLoadingMore(false);
     }
   }
 
@@ -364,6 +391,13 @@ export default function CenterDetailsScreen() {
       .join(', ');
   }
 
+  // Helper function to handle loading more stores when reaching end of list
+  const handleLoadMore = () => {
+    if (hasMoreStores && !isLoadingMore && !loading) {
+      loadMoreStores(page + 1);
+    }
+  };
+
   if (loading) {
     return (
       <View style={styles.centered}>
@@ -383,7 +417,25 @@ export default function CenterDetailsScreen() {
 
   return (
     <View style={styles.container}>
-      <ScrollView>
+      <ScrollView
+        onMomentumScrollEnd={({ nativeEvent }) => {
+          const isCloseToBottom = ({
+            contentOffset,
+            contentSize,
+            layoutMeasurement,
+          }) => {
+            const paddingToBottom = 20;
+            return (
+              layoutMeasurement.height + contentOffset.y >=
+              contentSize.height - paddingToBottom
+            );
+          };
+
+          if (isCloseToBottom(nativeEvent)) {
+            handleLoadMore();
+          }
+        }}
+      >
         <SafeView>
           <Image
             source={{
@@ -409,8 +461,6 @@ export default function CenterDetailsScreen() {
                 <MapPin size={20} color="#666666" />
                 <Text style={styles.infoText}>{mall.address}</Text>
               </View>
-
-              {debugInfo && <Text style={styles.debugText}>{debugInfo}</Text>}
             </View>
           </SafeView>
 
@@ -474,59 +524,75 @@ export default function CenterDetailsScreen() {
               {filteredStores.length === 0 ? (
                 <View style={styles.emptyState}>
                   <Text style={styles.emptyStateText}>
-                    No se encontraron tiendas que coincidan con tu búsqueda
+                    {isLoadingMore
+                      ? 'Cargando tiendas...'
+                      : 'No se encontraron tiendas que coincidan con tu búsqueda'}
                   </Text>
                 </View>
               ) : (
-                filteredStores.map((store) => (
-                  <Pressable
-                    key={store.id}
-                    style={styles.storeCard}
-                    onPress={() => router.push(`/store_details/${store.id}`)}
-                  >
-                    <View style={styles.storeInfo}>
-                      <Text style={styles.storeName}>{store.name}</Text>
-                      {store.categoryInfo &&
-                        Array.isArray(store.categoryInfo) &&
-                        store.categoryInfo.length > 0 &&
-                        getCategoryNames(store) && (
-                          <Text style={styles.storeCategory}>
-                            {getCategoryNames(store)}
-                          </Text>
-                        )}
-                      <View style={styles.storeDetails}>
-                        {store.floor && (
-                          <View style={styles.detailItem}>
-                            <MapPin size={14} color="#666666" />
-                            <Text style={styles.detailText}>
-                              {store.floor ? `Piso ${store.floor}` : ''}
-                              {store.floor && store.local_number ? ' ' : ''}
-                              {store.local_number
-                                ? `Local ${store.local_number}`
-                                : ''}
+                <>
+                  {filteredStores.map((store) => (
+                    <Pressable
+                      key={store.id}
+                      style={styles.storeCard}
+                      onPress={() => router.push(`/store_details/${store.id}`)}
+                    >
+                      <View style={styles.storeInfo}>
+                        <Text style={styles.storeName}>{store.name}</Text>
+                        {store.categoryInfo &&
+                          Array.isArray(store.categoryInfo) &&
+                          store.categoryInfo.length > 0 &&
+                          getCategoryNames(store) && (
+                            <Text style={styles.storeCategory}>
+                              {getCategoryNames(store)}
+                            </Text>
+                          )}
+                        <View style={styles.storeDetails}>
+                          {store.floor && (
+                            <View style={styles.detailItem}>
+                              <MapPin size={14} color="#666666" />
+                              <Text style={styles.detailText}>
+                                {store.floor ? `Piso ${store.floor}` : ''}
+                                {store.floor && store.local_number ? ' ' : ''}
+                                {store.local_number
+                                  ? `Local ${store.local_number}`
+                                  : ''}
+                              </Text>
+                            </View>
+                          )}
+                          {store.phone && (
+                            <View style={styles.detailItem}>
+                              <Phone size={14} color="#666666" />
+                              <Text style={styles.detailText}>
+                                {store.phone}
+                              </Text>
+                            </View>
+                          )}
+                        </View>
+                      </View>
+
+                      {store.active_promotions_count &&
+                        store.active_promotions_count > 0 && (
+                          <View style={styles.promotionBadge}>
+                            <Tag size={14} color="#ffffff" />
+                            <Text style={styles.promotionCount}>
+                              {store.active_promotions_count}
                             </Text>
                           </View>
                         )}
-                        {store.phone && (
-                          <View style={styles.detailItem}>
-                            <Phone size={14} color="#666666" />
-                            <Text style={styles.detailText}>{store.phone}</Text>
-                          </View>
-                        )}
-                      </View>
-                    </View>
+                    </Pressable>
+                  ))}
 
-                    {store.active_promotions_count &&
-                      store.active_promotions_count > 0 && (
-                        <View style={styles.promotionBadge}>
-                          <Tag size={14} color="#ffffff" />
-                          <Text style={styles.promotionCount}>
-                            {store.active_promotions_count}
-                          </Text>
-                        </View>
-                      )}
-                  </Pressable>
-                ))
+                  {/* Loading indicator for more stores */}
+                  {isLoadingMore && (
+                    <View style={styles.loadingMore}>
+                      <ActivityIndicator size="small" color="#FF4B4B" />
+                      <Text style={styles.loadingMoreText}>
+                        Cargando más tiendas...
+                      </Text>
+                    </View>
+                  )}
+                </>
               )}
             </View>
           </SafeView>
@@ -715,5 +781,16 @@ const styles = StyleSheet.create({
     marginTop: 10,
     paddingHorizontal: 5,
     backgroundColor: '#f0f0f0',
+  },
+  loadingMore: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+  },
+  loadingMoreText: {
+    fontSize: 14,
+    color: '#666',
+    marginLeft: 8,
   },
 });
