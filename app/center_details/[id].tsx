@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/lib/supabase';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Component, ReactNode } from 'react';
 import {
   MapPin,
   Phone,
@@ -18,6 +18,7 @@ import {
   Store,
   ArrowLeft,
   Tag,
+  AlertCircle,
 } from 'lucide-react-native';
 import { router } from 'expo-router';
 
@@ -55,6 +56,48 @@ type ShoppingMall = {
   longitude: number;
 };
 
+// Add Error Boundary Component
+class ErrorBoundary extends Component<
+  { children: ReactNode; fallback?: ReactNode },
+  { hasError: boolean; error: Error | null }
+> {
+  constructor(props: { children: ReactNode; fallback?: ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: any) {
+    console.error('Error boundary caught error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      if (this.props.fallback) {
+        return this.props.fallback;
+      }
+      return (
+        <View style={styles.errorContainer}>
+          <AlertCircle size={24} color="#FF4B4B" />
+          <Text style={styles.errorText}>Something went wrong</Text>
+          <Text style={styles.errorDetail}>
+            {this.state.error?.message || 'Unknown error'}
+          </Text>
+        </View>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+// Wrap component sections with error boundaries
+const SafeView = ({ children }: { children: ReactNode }) => (
+  <ErrorBoundary>{children}</ErrorBoundary>
+);
+
 export default function CenterDetailsScreen() {
   const { id } = useLocalSearchParams();
   const [mall, setMall] = useState<ShoppingMall | null>(null);
@@ -65,8 +108,10 @@ export default function CenterDetailsScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [debugInfo, setDebugInfo] = useState<string | null>(null);
 
   useEffect(() => {
+    console.log(`CenterDetailsScreen mounted with mall ID: ${id}`);
     fetchMallData();
     fetchCategories();
   }, [id]);
@@ -77,19 +122,31 @@ export default function CenterDetailsScreen() {
 
   async function fetchMallData() {
     try {
+      console.log(`Starting to fetch mall data for ID: ${id}`);
       setLoading(true);
 
       // Fetch mall details
+      const startTime = Date.now();
       const { data: mallData, error: mallError } = await supabase
         .from('shopping_malls')
         .select('*')
         .eq('id', id)
         .single();
 
+      console.log(`Mall data fetch took ${Date.now() - startTime}ms`);
+      console.log(
+        `Mall data:`,
+        JSON.stringify(mallData).substring(0, 200) + '...'
+      );
+
       if (mallError) throw mallError;
       setMall(mallData);
 
       // Fetch stores for this mall with proper category information
+      console.log(`Starting to fetch stores for mall ID: ${id}`);
+      const storesStartTime = Date.now();
+
+      // Optimize the query to limit the number of stores if there are too many
       const { data: storesData, error: storesError } = await supabase
         .from('stores')
         .select(
@@ -114,12 +171,34 @@ export default function CenterDetailsScreen() {
         )
         .eq('mall_id', id)
         .order('name', { ascending: true });
+      // Add a limit if needed for performance
+      // .limit(50);
+
+      console.log(`Stores fetch took ${Date.now() - storesStartTime}ms`);
+      console.log(`Retrieved ${storesData?.length || 0} stores`);
 
       if (storesError) throw storesError;
 
+      if (!storesData || storesData.length === 0) {
+        console.log('No stores found for this mall');
+        setStores([]);
+        setFilteredStores([]);
+        setLoading(false);
+        return;
+      }
+
       // Process stores to include category information
-      const processedStores =
-        storesData?.map((store) => {
+      console.log(`Processing store data...`);
+      const processStartTime = Date.now();
+
+      const storeCount = storesData.length;
+      const batchSize = 20; // Process stores in smaller batches to avoid UI freezing
+      let processedStores: Store[] = [];
+
+      // Process in batches to prevent UI blocking
+      for (let i = 0; i < storeCount; i += batchSize) {
+        const batch = storesData.slice(i, i + batchSize);
+        const batchProcessed = batch.map((store) => {
           // Extract category information from store_categories
           const categoryInfo: CategoryInfo[] =
             store.store_categories && Array.isArray(store.store_categories)
@@ -136,32 +215,83 @@ export default function CenterDetailsScreen() {
             ...store,
             categoryInfo, // Add processed category information
           };
-        }) || [];
+        });
+        processedStores = [...processedStores, ...batchProcessed];
+
+        // Allow UI to update if needed
+        if (i + batchSize < storeCount) {
+          await new Promise((resolve) => setTimeout(resolve, 0));
+        }
+      }
+
+      console.log(
+        `Store data processing took ${Date.now() - processStartTime}ms`
+      );
 
       // Get current date for active promotions check
       const now = new Date().toISOString();
 
-      // Count active promotions for each store
-      const storesWithPromotions = await Promise.all(
-        processedStores.map(async (store) => {
-          const { count } = await supabase
-            .from('promotions')
-            .select('*', { count: 'exact', head: true })
-            .eq('store_id', store.id)
-            .gt('end_date', now);
-
-          return {
-            ...store,
-            active_promotions_count: count || 0,
-          };
-        })
+      // Count active promotions for each store - do this in batches too
+      console.log(
+        `Counting promotions for ${processedStores.length} stores...`
       );
+      const promotionsStartTime = Date.now();
 
+      let storesWithPromotions: Store[] = [];
+
+      // Process promotions in smaller batches to prevent UI blocking
+      for (let i = 0; i < processedStores.length; i += batchSize) {
+        const batch = processedStores.slice(i, i + batchSize);
+        const batchPromises = batch.map(async (store) => {
+          try {
+            const { count } = await supabase
+              .from('promotions')
+              .select('*', { count: 'exact', head: true })
+              .eq('store_id', store.id)
+              .gt('end_date', now);
+
+            return {
+              ...store,
+              active_promotions_count: count || 0,
+            };
+          } catch (err) {
+            console.error(
+              `Error fetching promotions for store ${store.id}:`,
+              err
+            );
+            return {
+              ...store,
+              active_promotions_count: 0,
+            };
+          }
+        });
+
+        const batchResults = await Promise.all(batchPromises);
+        storesWithPromotions = [...storesWithPromotions, ...batchResults];
+
+        // Allow UI to update if needed
+        if (i + batchSize < processedStores.length) {
+          await new Promise((resolve) => setTimeout(resolve, 0));
+        }
+      }
+
+      console.log(
+        `Promotions counting took ${Date.now() - promotionsStartTime}ms`
+      );
+      const totalTime = Date.now() - startTime;
+      console.log(`Total data fetch took ${totalTime}ms`);
+
+      setDebugInfo(
+        `Mall ID: ${id}, Stores: ${storesWithPromotions.length}, Fetch time: ${totalTime}ms`
+      );
       setStores(storesWithPromotions || []);
       setFilteredStores(storesWithPromotions || []);
     } catch (err) {
       console.error('Error fetching mall data:', err);
       setError('Error loading mall data');
+      setDebugInfo(
+        `Error: ${err instanceof Error ? err.message : String(err)}`
+      );
     } finally {
       setLoading(false);
     }
@@ -246,6 +376,7 @@ export default function CenterDetailsScreen() {
     return (
       <View style={styles.centered}>
         <Text style={styles.errorText}>Shopping center not found</Text>
+        {debugInfo && <Text style={styles.debugText}>{debugInfo}</Text>}
       </View>
     );
   }
@@ -253,134 +384,152 @@ export default function CenterDetailsScreen() {
   return (
     <View style={styles.container}>
       <ScrollView>
-        <Image
-          source={{
-            uri:
-              mall.image ||
-              'https://images.unsplash.com/photo-1519567241348-f1f90a3faa10?w=800&fit=crop&q=80',
-          }}
-          style={styles.coverImage}
-        />
+        <SafeView>
+          <Image
+            source={{
+              uri:
+                mall.image ||
+                'https://images.unsplash.com/photo-1519567241348-f1f90a3faa10?w=800&fit=crop&q=80',
+            }}
+            style={styles.coverImage}
+          />
 
-        <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <ArrowLeft color="#ffffff" size={24} />
-        </Pressable>
+          <Pressable style={styles.backButton} onPress={() => router.back()}>
+            <ArrowLeft color="#ffffff" size={24} />
+          </Pressable>
+        </SafeView>
 
         <View style={styles.content}>
-          <View style={styles.header}>
-            <Text style={styles.title}>{mall.name}</Text>
-            <Text style={styles.description}>{mall.description}</Text>
+          <SafeView>
+            <View style={styles.header}>
+              <Text style={styles.title}>{mall.name}</Text>
+              <Text style={styles.description}>{mall.description}</Text>
 
-            <View style={styles.infoRow}>
-              <MapPin size={20} color="#666666" />
-              <Text style={styles.infoText}>{mall.address}</Text>
+              <View style={styles.infoRow}>
+                <MapPin size={20} color="#666666" />
+                <Text style={styles.infoText}>{mall.address}</Text>
+              </View>
+
+              {debugInfo && <Text style={styles.debugText}>{debugInfo}</Text>}
             </View>
-          </View>
+          </SafeView>
 
-          <View style={styles.searchSection}>
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Buscar tiendas..."
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-            />
+          <SafeView>
+            <View style={styles.searchSection}>
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Buscar tiendas..."
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+              />
 
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={styles.categoriesScroll}
-            >
-              <Pressable
-                style={[
-                  styles.categoryChip,
-                  !selectedCategory && styles.categoryChipSelected,
-                ]}
-                onPress={() => setSelectedCategory(null)}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.categoriesScroll}
               >
-                <Text
-                  style={[
-                    styles.categoryChipText,
-                    !selectedCategory && styles.categoryChipTextSelected,
-                  ]}
-                >
-                  Todas
-                </Text>
-              </Pressable>
-              {categories.map((category) => (
                 <Pressable
-                  key={category.id}
                   style={[
                     styles.categoryChip,
-                    selectedCategory === category.id &&
-                      styles.categoryChipSelected,
+                    !selectedCategory && styles.categoryChipSelected,
                   ]}
-                  onPress={() => setSelectedCategory(category.id)}
+                  onPress={() => setSelectedCategory(null)}
                 >
                   <Text
                     style={[
                       styles.categoryChipText,
-                      selectedCategory === category.id &&
-                        styles.categoryChipTextSelected,
+                      !selectedCategory && styles.categoryChipTextSelected,
                     ]}
                   >
-                    {category.name}
+                    Todas
                   </Text>
                 </Pressable>
-              ))}
-            </ScrollView>
-          </View>
+                {categories.map((category) => (
+                  <Pressable
+                    key={category.id}
+                    style={[
+                      styles.categoryChip,
+                      selectedCategory === category.id &&
+                        styles.categoryChipSelected,
+                    ]}
+                    onPress={() => setSelectedCategory(category.id)}
+                  >
+                    <Text
+                      style={[
+                        styles.categoryChipText,
+                        selectedCategory === category.id &&
+                          styles.categoryChipTextSelected,
+                      ]}
+                    >
+                      {category.name}
+                    </Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </View>
+          </SafeView>
 
-          <View style={styles.storesList}>
-            {filteredStores.map((store) => (
-              <Pressable
-                key={store.id}
-                style={styles.storeCard}
-                onPress={() => router.push(`/store_details/${store.id}`)}
-              >
-                <View style={styles.storeInfo}>
-                  <Text style={styles.storeName}>{store.name}</Text>
-                  {store.categoryInfo &&
-                    Array.isArray(store.categoryInfo) &&
-                    store.categoryInfo.length > 0 &&
-                    getCategoryNames(store) && (
-                      <Text style={styles.storeCategory}>
-                        {getCategoryNames(store)}
-                      </Text>
-                    )}
-                  <View style={styles.storeDetails}>
-                    {store.floor && (
-                      <View style={styles.detailItem}>
-                        <MapPin size={14} color="#666666" />
-                        <Text style={styles.detailText}>
-                          {store.floor ? `Piso ${store.floor}` : ''}
-                          {store.floor && store.local_number ? ' ' : ''}
-                          {store.local_number
-                            ? `Local ${store.local_number}`
-                            : ''}
-                        </Text>
-                      </View>
-                    )}
-                    {store.phone && (
-                      <View style={styles.detailItem}>
-                        <Phone size={14} color="#666666" />
-                        <Text style={styles.detailText}>{store.phone}</Text>
-                      </View>
-                    )}
-                  </View>
+          <SafeView>
+            <View style={styles.storesList}>
+              {filteredStores.length === 0 ? (
+                <View style={styles.emptyState}>
+                  <Text style={styles.emptyStateText}>
+                    No se encontraron tiendas que coincidan con tu búsqueda
+                  </Text>
                 </View>
-
-                {store.active_promotions_count &&
-                  store.active_promotions_count > 0 && (
-                    <View style={styles.promotionBadge}>
-                      <Tag size={14} color="#ffffff" />
-                      <Text style={styles.promotionCount}>
-                        {store.active_promotions_count}
-                      </Text>
+              ) : (
+                filteredStores.map((store) => (
+                  <Pressable
+                    key={store.id}
+                    style={styles.storeCard}
+                    onPress={() => router.push(`/store_details/${store.id}`)}
+                  >
+                    <View style={styles.storeInfo}>
+                      <Text style={styles.storeName}>{store.name}</Text>
+                      {store.categoryInfo &&
+                        Array.isArray(store.categoryInfo) &&
+                        store.categoryInfo.length > 0 &&
+                        getCategoryNames(store) && (
+                          <Text style={styles.storeCategory}>
+                            {getCategoryNames(store)}
+                          </Text>
+                        )}
+                      <View style={styles.storeDetails}>
+                        {store.floor && (
+                          <View style={styles.detailItem}>
+                            <MapPin size={14} color="#666666" />
+                            <Text style={styles.detailText}>
+                              {store.floor ? `Piso ${store.floor}` : ''}
+                              {store.floor && store.local_number ? ' ' : ''}
+                              {store.local_number
+                                ? `Local ${store.local_number}`
+                                : ''}
+                            </Text>
+                          </View>
+                        )}
+                        {store.phone && (
+                          <View style={styles.detailItem}>
+                            <Phone size={14} color="#666666" />
+                            <Text style={styles.detailText}>{store.phone}</Text>
+                          </View>
+                        )}
+                      </View>
                     </View>
-                  )}
-              </Pressable>
-            ))}
-          </View>
+
+                    {store.active_promotions_count &&
+                      store.active_promotions_count > 0 && (
+                        <View style={styles.promotionBadge}>
+                          <Tag size={14} color="#ffffff" />
+                          <Text style={styles.promotionCount}>
+                            {store.active_promotions_count}
+                          </Text>
+                        </View>
+                      )}
+                  </Pressable>
+                ))
+              )}
+            </View>
+          </SafeView>
         </View>
       </ScrollView>
     </View>
@@ -537,5 +686,34 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     marginLeft: 4,
     fontWeight: '500',
+  },
+  errorContainer: {
+    padding: 16,
+    backgroundColor: '#FFF5F5',
+    borderRadius: 8,
+    alignItems: 'center',
+    margin: 10,
+  },
+  errorDetail: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 5,
+  },
+  emptyState: {
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyStateText: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+  },
+  debugText: {
+    fontSize: 10,
+    color: '#999',
+    marginTop: 10,
+    paddingHorizontal: 5,
+    backgroundColor: '#f0f0f0',
   },
 });
