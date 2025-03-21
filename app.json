@@ -12,7 +12,7 @@
     "platforms": ["ios", "android", "web"],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.woomad.app",
+      "bundleIdentifier": "com.woomad.appdev",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Woomad necesita acceso a tu ubicación para mostrarte centros comerciales y promociones cercanas a ti.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Woomad necesita acceso a tu ubicación para enviarte notificaciones sobre centros comerciales y promociones cercanas a ti, incluso cuando la app está en segundo plano.",
@@ -21,11 +21,19 @@
     },
     "android": {
       "package": "com.woomad.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#FFFFFF"
+      },
       "permissions": [
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",
         "ACCESS_BACKGROUND_LOCATION"
-      ]
+      ],
+      "versionCode": 1,
+      "compileSdkVersion": 33,
+      "targetSdkVersion": 33,
+      "minSdkVersion": 21
     },
     "web": {
       "bundler": "metro",
@@ -36,7 +44,7 @@
       "typedRoutes": true
     },
     "assetBundlePatterns": ["**/*"],
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "extra": {
       "router": {
         "origin": false
@@ -44,6 +52,12 @@
       "eas": {
         "projectId": "1d14fe25-cbae-4569-b7fe-e4e71ce02d13"
       }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/1d14fe25-cbae-4569-b7fe-e4e71ce02d13"
     }
   }
 }

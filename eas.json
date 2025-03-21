@@ -9,17 +9,60 @@
       "distribution": "internal"
     },
     "preview": {
+      "distribution": "internal",
+      "channel": "preview",
+      "extends": "production",
+      "ios": {
+        "simulator": false,
+        "buildConfiguration": "Release",
+        "resourceClass": "m-medium",
+        "image": "latest"
+      },
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "ios-simulator": {
+      "extends": "development",
+      "ios": {
+        "simulator": true,
+        "developmentClient": true,
+        "buildConfiguration": "Debug"
+      },
+      "channel": "ios-simulator",
       "distribution": "internal"
+    },
+    "preview-android": {
+      "distribution": "internal",
+      "channel": "preview-android",
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease",
+        "image": "latest",
+        "withoutCredentials": true,
+        "autoIncrement": true,
+        "resourceClass": "medium"
+      }
     },
     "production": {
       "autoIncrement": true,
       "android": {
         "gradleCommand": ":app:bundleRelease",
         "buildType": "app-bundle"
+      },
+      "ios": {
+        "resourceClass": "m-medium"
       }
     }
   },
   "submit": {
-    "production": {}
+    "production": {},
+    "preview": {
+      "ios": {
+        "appleId": "alejandro.glz.rdz@icloud.com",
+        "ascAppId": "6743495632",
+        "appleTeamId": "SA547BU267"
+      }
+    }
   }
 }
