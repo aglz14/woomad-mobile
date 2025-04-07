@@ -13,7 +13,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.woomad.appdev",
-      "buildNumber": "9",
+      "buildNumber": "10",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Woomad necesita acceso a tu ubicación para mostrarte centros comerciales y promociones cercanas a ti.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Woomad necesita acceso a tu ubicación para enviarte notificaciones sobre centros comerciales y promociones cercanas a ti, incluso cuando la app está en segundo plano.",
