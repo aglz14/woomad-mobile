@@ -21,7 +21,7 @@ type RawPromotion = {
   description: string;
   image: string;
   end_date: string;
-  store: any; // Using any for the raw data from Supabase
+  store: any;
 };
 
 // Define the processed promotion structure
@@ -62,7 +62,6 @@ export default function PromotionsScreen() {
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
           setError('Permission to access location was denied');
-          // Still fetch promotions even without location
           fetchInitialPromotions(null);
           return;
         }
@@ -73,7 +72,6 @@ export default function PromotionsScreen() {
       } catch (err) {
         console.error('Error getting location:', err);
         setError('Error accessing location services');
-        // Still fetch promotions even without location
         fetchInitialPromotions(null);
       }
     })();
@@ -85,12 +83,11 @@ export default function PromotionsScreen() {
     }
   }, [promotions, searchQuery]);
 
-  // Calculate distance between two points using Haversine formula
   const calculateDistance = useCallback(
     (lat1: number, lon1: number, lat2: number, lon2: number): number => {
       if (!lat1 || !lon1 || !lat2 || !lon2) return Infinity;
 
-      const R = 6371; // Earth's radius in kilometers
+      const R = 6371;
       const dLat = (lat2 - lat1) * (Math.PI / 180);
       const dLon = (lon2 - lon1) * (Math.PI / 180);
       const a =
@@ -105,13 +102,11 @@ export default function PromotionsScreen() {
     []
   );
 
-  // Initial load of promotions
   async function fetchInitialPromotions(
     userLocation: Location.LocationObject | null
   ) {
     try {
       setLoading(true);
-      // Reset pagination state
       setPage(0);
       setPromotions([]);
       setFilteredPromotions([]);
@@ -126,7 +121,6 @@ export default function PromotionsScreen() {
     }
   }
 
-  // Function to load more promotions (paginated)
   async function loadMorePromotions(
     pageToLoad: number,
     userLocation: Location.LocationObject | null
@@ -140,6 +134,7 @@ export default function PromotionsScreen() {
       const now = new Date().toISOString();
       const startTime = Date.now();
 
+      // Fetch promotions with proper filtering for current promotions
       const { data, error: fetchError } = await supabase
         .from('promotions')
         .select(
@@ -155,16 +150,12 @@ export default function PromotionsScreen() {
             )
           )`
         )
-        .gt('end_date', now)
+        .gt('end_date', now) // Only get current promotions
+        .order('end_date', { ascending: true }) // Order by end date
         .range(
           pageToLoad * PROMOTIONS_PER_PAGE,
           (pageToLoad + 1) * PROMOTIONS_PER_PAGE - 1
         );
-
-      console.log(`Promotions fetch took ${Date.now() - startTime}ms`);
-      console.log(
-        `Retrieved ${data?.length || 0} promotions for page ${pageToLoad}`
-      );
 
       if (fetchError) throw fetchError;
 
@@ -174,29 +165,22 @@ export default function PromotionsScreen() {
         return;
       }
 
-      // Set hasMorePromotions to false if we received fewer items than expected
       if (data.length < PROMOTIONS_PER_PAGE) {
         setHasMorePromotions(false);
       }
 
       // Process promotions with safe access to nested properties
-      console.log(`Processing promotion data for page ${pageToLoad}...`);
-      const processStartTime = Date.now();
-
-      // Process in batches to prevent UI blocking
       const batchSize = 5;
       let processedPromotions: Promotion[] = [];
 
       for (let i = 0; i < data.length; i += batchSize) {
         const batch = data.slice(i, i + batchSize);
         const batchProcessed = batch.map((promo: RawPromotion) => {
-          // Safely access nested properties
           const storeData = promo.store || {};
           const storeObj = Array.isArray(storeData) ? storeData[0] : storeData;
           const mallData = storeObj?.mall || {};
           const mallObj = Array.isArray(mallData) ? mallData[0] : mallData;
 
-          // Calculate distance if location is available
           let distance = undefined;
           if (userLocation && mallObj?.latitude && mallObj?.longitude) {
             distance = calculateDistance(
@@ -207,7 +191,6 @@ export default function PromotionsScreen() {
             );
           }
 
-          // Create a properly structured promotion object
           return {
             id: promo.id,
             title: promo.title,
@@ -230,55 +213,35 @@ export default function PromotionsScreen() {
 
         processedPromotions = [...processedPromotions, ...batchProcessed];
 
-        // Allow UI to update if needed
         if (i + batchSize < data.length) {
           await new Promise((resolve) => setTimeout(resolve, 0));
         }
       }
 
-      console.log(
-        `Promotion data processing took ${Date.now() - processStartTime}ms`
-      );
-      const totalTime = Date.now() - startTime;
-      console.log(
-        `Total data fetch for page ${pageToLoad} took ${totalTime}ms`
-      );
+      // Remove duplicates based on promotion ID
+      const uniquePromotions = processedPromotions.reduce((acc, current) => {
+        const x = acc.find((item) => item.id === current.id);
+        if (!x) {
+          return acc.concat([current]);
+        } else {
+          return acc;
+        }
+      }, [] as Promotion[]);
 
-      // Filter by distance if location is available
-      const filteredByDistance = userLocation
-        ? processedPromotions
-            .filter(
-              (promo) => promo.distance !== undefined && promo.distance <= 100
-            )
-            .sort((a, b) => (a.distance || Infinity) - (b.distance || Infinity))
-        : processedPromotions;
+      // Update state with unique promotions
+      setPromotions((prevPromotions) => {
+        const allPromotions = [...prevPromotions, ...uniquePromotions];
+        // Remove duplicates from the combined array
+        return allPromotions.filter(
+          (promo, index, self) =>
+            index === self.findIndex((p) => p.id === promo.id)
+        );
+      });
 
-      // Append new promotions to existing ones
-      setPromotions((prevPromotions) => [
-        ...prevPromotions,
-        ...filteredByDistance,
-      ]);
       setPage(pageToLoad);
-
-      // Update filtered promotions if there's no search query
-      if (!searchQuery) {
-        setFilteredPromotions((prevFiltered) => [
-          ...prevFiltered,
-          ...filteredByDistance,
-        ]);
-      } else {
-        // Re-apply search filter on all promotions
-        handleSearch(searchQuery);
-      }
-
-      setError(null);
     } catch (err) {
-      const error = err as PostgrestError;
-      console.error('Error loading more promotions:', error.message);
-      // Don't set global error on pagination failures, just log it
-      if (pageToLoad === 0) {
-        setError('Error al cargar las promociones');
-      }
+      console.error('Error loading more promotions:', err);
+      setError('Error al cargar más promociones');
     } finally {
       setIsLoadingMore(false);
     }
@@ -291,14 +254,17 @@ export default function PromotionsScreen() {
       return;
     }
 
-    const searchTerms = query.toLowerCase().trim().split(' ');
     const filtered = promotions.filter((promo) => {
-      const mallName = promo.store?.mall?.name || '';
-      const storeName = promo.store?.name || '';
-      const searchString =
-        `${promo.title} ${promo.description} ${storeName} ${mallName}`.toLowerCase();
-      return searchTerms.every((term) => searchString.includes(term));
+      const searchLower = query.toLowerCase();
+      return (
+        promo.title.toLowerCase().includes(searchLower) ||
+        promo.description.toLowerCase().includes(searchLower) ||
+        promo.store.name.toLowerCase().includes(searchLower) ||
+        promo.store.mall?.name.toLowerCase().includes(searchLower) ||
+        false
+      );
     });
+
     setFilteredPromotions(filtered);
   };
 
@@ -311,9 +277,8 @@ export default function PromotionsScreen() {
     });
   };
 
-  // Helper function to handle loading more promotions
   const handleLoadMore = () => {
-    if (hasMorePromotions && !isLoadingMore && !loading) {
+    if (hasMorePromotions && !isLoadingMore && !loading && location) {
       loadMorePromotions(page + 1, location);
     }
   };
