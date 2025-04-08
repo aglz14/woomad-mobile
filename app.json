@@ -15,14 +15,21 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.woomad.appdev",
-      "buildNumber": "12"
+      "buildNumber": "12",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.woomad.appdev"
+      "package": "com.woomad.appdev",
+      "permissions": [
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -33,11 +40,13 @@
         {
           "locationAlwaysAndWhenInUsePermission": "Allow Woomad Commerce to use your location."
         }
-      ]
+      ],
+      "expo-router"
     ],
     "extra": {
       "eas": {
-        "projectId": "1d14fe25-cbae-4569-b7fe-e4e71ce02d13"
+        "projectId": "1d14fe25-cbae-4569-b7fe-e4e71ce02d13",
+        "owner": "aglz14"
       }
     }
   }
