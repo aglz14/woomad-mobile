@@ -56,7 +56,13 @@
     }
   },
   "submit": {
-    "production": {},
+    "production": {
+      "ios": {
+        "appleId": "alejandro.glz.rdz@icloud.com",
+        "ascAppId": "6743495632",
+        "appleTeamId": "SA547BU267"
+      }
+    },
     "preview": {
       "ios": {
         "appleId": "alejandro.glz.rdz@icloud.com",
