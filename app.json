@@ -5,57 +5,40 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "scheme": "woomad",
-    "userInterfaceStyle": "automatic",
-    "sdkVersion": "52.0.0",
-    "owner": "aglz14",
-    "platforms": ["ios", "android", "web"],
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.woomad.appdev",
-      "buildNumber": "10",
-      "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "Woomad necesita acceso a tu ubicación para mostrarte centros comerciales y promociones cercanas a ti.",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "Woomad necesita acceso a tu ubicación para enviarte notificaciones sobre centros comerciales y promociones cercanas a ti, incluso cuando la app está en segundo plano.",
-        "ITSAppUsesNonExemptEncryption": false
-      }
+      "buildNumber": "12"
     },
     "android": {
-      "package": "com.woomad.app",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/icon.png",
-        "backgroundColor": "#FFFFFF"
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
       },
-      "permissions": [
-        "ACCESS_COARSE_LOCATION",
-        "ACCESS_FINE_LOCATION",
-        "ACCESS_BACKGROUND_LOCATION"
-      ],
-      "versionCode": 1
+      "package": "com.woomad.appdev"
     },
     "web": {
-      "bundler": "metro",
       "favicon": "./assets/favicon.png"
     },
-    "plugins": ["expo-router", "expo-dev-client"],
-    "experiments": {
-      "typedRoutes": true
-    },
-    "assetBundlePatterns": ["**/*"],
-    "newArchEnabled": false,
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow Woomad Commerce to use your location."
+        }
+      ]
+    ],
     "extra": {
-      "router": {
-        "origin": false
-      },
       "eas": {
         "projectId": "1d14fe25-cbae-4569-b7fe-e4e71ce02d13"
       }
-    },
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
-    "updates": {
-      "url": "https://u.expo.dev/1d14fe25-cbae-4569-b7fe-e4e71ce02d13"
     }
   }
 }
