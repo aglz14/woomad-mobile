@@ -40,16 +40,18 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.container}>
-      <Pressable
-        style={styles.backButton}
-        onPress={() => router.push('/(tabs)')}
-      >
-        <ArrowLeft size={24} color="#1a1a1a" />
-      </Pressable>
-
       <View style={styles.header}>
-        <Text style={styles.title}>¡Bienvenido!</Text>
-        <Text style={styles.subtitle}>Inicia sesión para continuar</Text>
+        <Pressable
+          style={styles.backButton}
+          onPress={() => router.push('/(tabs)')}
+        >
+          <ArrowLeft size={24} color="#1a1a1a" />
+        </Pressable>
+
+        <View style={styles.headerContent}>
+          <Text style={styles.title}>¡Bienvenido!</Text>
+          <Text style={styles.subtitle}>Inicia sesión para continuar</Text>
+        </View>
       </View>
 
       {error && (
@@ -116,12 +118,18 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#ffffff',
   },
   header: {
-    padding: 20,
     paddingTop: 60,
-    backgroundColor: '#ffffff',
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+  },
+  backButton: {
+    marginBottom: 16,
+  },
+  headerContent: {
+    marginTop: 8,
   },
   title: {
     fontSize: 32,
@@ -194,13 +202,6 @@ const styles = StyleSheet.create({
   link: {
     color: '#FF4B4B',
     fontSize: 14,
-  },
-  backButton: {
-    position: 'absolute',
-    top: 60,
-    left: 20,
-    zIndex: 10,
-    padding: 8,
   },
   homeLink: {
     marginTop: 24,
